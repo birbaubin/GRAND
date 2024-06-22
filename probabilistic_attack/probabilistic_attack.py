@@ -1,12 +1,11 @@
 import numpy as np
-from Graph import Graph
 from helpers import *
 from node2vec import Node2Vec
-from LinkPrediction import *
+from probabilistic_attack.LinkPrediction import LinkPredictor
 from itertools import product
 
 
-def similarity_based_completion(gstar, number_of_additions, method="common_neighbors"):
+def similarity_based_completion(gstar, k, A, method="common_neighbors"):
     print(f"\n######## Similarity-based completion using {method} #######")
     gstar_copy = gstar.copy()
     unknown_edges = set(gstar_copy.unknown_edges())
@@ -14,14 +13,29 @@ def similarity_based_completion(gstar, number_of_additions, method="common_neigh
 
     predictions = sorted(predictions.items(), key=lambda x: x[1], reverse=True)
 
+    additions = 0
     i = 0
 
-    while i < number_of_additions and i < len(predictions):
+    while additions < k and i < len(predictions):
         edge, score = predictions[i]
-        gstar_copy.add_edge(edge)
-        i += 1
+        n1, n2 = edge
+        print("Trying edge ", edge)
+        neighbors_n1 = gstar_copy.neighbors(n1)
+        neighbors_n2 = gstar_copy.neighbors(n2)
+        
+        ok = True
+
+        if len(gstar_copy.neighbors(n1)) >= A[n1, n1] or len(gstar_copy.neighbors(n2)) >= A[n2, n2]:
+            ok = False
+
+        if ok:
+            gstar_copy.add_edge(edge)
+            additions += 1
+
+        i+=1
         
     return gstar_copy
+
 
 
 def A_based_completion(gstar, number_of_additions, A):

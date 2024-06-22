@@ -157,8 +157,8 @@ class Graph(object):
                     num_absent_edges += 1
 
         num_absent_edges += len(self.nodes)
-        num_present_edges = len(np.where(self.adj_matrix == 1)[0]) / 2
-        num_unknown_edges = len(np.where(self.adj_matrix == 2)[0]) / 2
+        num_present_edges = int(len(np.where(self.adj_matrix == 1)[0]) / 2)
+        num_unknown_edges = int(len(np.where(self.adj_matrix == 2)[0]) / 2)
 
         return num_absent_edges, num_present_edges, num_unknown_edges
 

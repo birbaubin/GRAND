@@ -3,7 +3,6 @@ import torch
 from torch import nn
 from torch_geometric.nn import SAGEConv, GCNConv, GATConv
 from torch_geometric.utils import to_undirected, negative_sampling
-from Graph import Graph
 import numpy as np
 from torch_geometric.data import Data
 import matplotlib.pyplot as plt
