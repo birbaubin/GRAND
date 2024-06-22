@@ -7,14 +7,10 @@ class Graph(object):
     def __init__(self, nodes, with_fixed_edges=False):
         self.nodes = nodes
         self.size = len(nodes)
-
-        #adj_matrix[i][j] = 0 if there is no edge between i and j
-        #adj_matrix[i][j] = 1 if there is an edge between i and j
-        #adj_matrix[i][j] = 2 if we don't know if there is an edge between i and j
         if with_fixed_edges:
-            self.adj_matrix = np.zeros((self.size, self.size))
+            self.adj_matrix = np.zeros((self.size, self.size), dtype=int)
         else:
-            self.adj_matrix = np.full((self.size, self.size), 2)
+            self.adj_matrix = np.full((self.size, self.size), 2, dtype=int)
             for i in range(self.size):
                 self.adj_matrix[i][i] = 0
 
