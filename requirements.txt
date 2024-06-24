@@ -4,3 +4,4 @@ tqdm
 prettytable
 pandas
 torch
+torch_geometric
