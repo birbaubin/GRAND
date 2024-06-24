@@ -58,11 +58,11 @@ def display_reconstruction_metrics(prediction, groundtruth):
     t.add_row(['Edge identification accuracy', edge_accuracy])
     print(t, "\n")
 
-def log_graph_stats(graph1_prob, common_prob, expe, graph, iter_number, time, file_name, groundtruth):
+def log_graph_stats(graph1_prob, common_prob, expe, attack_type, graph, iter_number, time, file_name, groundtruth, ):
     stats = graph.stats()
     TP, FP, TN, FN = ROC_stats(graph, groundtruth)
     with open(file_name, "a+") as f:
-        f.write(f"{expe},{graph1_prob},{common_prob},{iter_number},{stats[0]},{stats[1]},{stats[2]},{TP},{FP},{TN},{FN},{time}\n")
+        f.write(f"{expe},{attack_type},{graph1_prob},{common_prob},{iter_number},{stats[0]},{stats[1]},{stats[2]},{TP},{FP},{TN},{FN},{time}\n")
     return stats[0], stats[1], stats[2]
 
 def ROC_stats(prediction, groundtruth):
