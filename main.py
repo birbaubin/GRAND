@@ -58,7 +58,7 @@ def mixed_attack_pipeline():
                     reconstructed_graph, number_modifs2 = completion_attacks(reconstructed_graph, A)
                     end = time.time()
                     display_reconstruction_metrics(reconstructed_graph, dataset)
-                    log_graph_stats(graph1_prop, common_prop, expe, "deterministic", reconstructed_graph, iteration_deterministic, end-start,f"logs_mixed/{dataset_name}.csv", dataset)
+                    log_graph_stats(graph1_prop, common_prop, expe, "deterministic", reconstructed_graph, iteration_deterministic, end-start,f"logs_hybrid/{dataset_name}.csv", dataset)
     # # 
                     if number_modifs1 + number_modifs2 == 0:
                         continue_deterministic = False
@@ -74,7 +74,7 @@ def mixed_attack_pipeline():
                     continue_main_loop = False
 
                 display_reconstruction_metrics(reconstructed_graph, dataset)
-                log_graph_stats(graph1_prop, common_prop, expe, "probabilistic", reconstructed_graph, iteration_probabilistic, end-start,f"logs_mixed/{dataset_name}.csv", dataset)
+                log_graph_stats(graph1_prop, common_prop, expe, "probabilistic", reconstructed_graph, iteration_probabilistic, end-start,f"logs_hybrid/{dataset_name}.csv", dataset)
                 iteration_probabilistic += 1
 # 
             reconstructed_graph.fix_edges()
