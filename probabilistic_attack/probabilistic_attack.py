@@ -53,7 +53,7 @@ def similarity_based_completion(gstar, k, A, method="common_neighbors"):
 
         i+=1
         
-    return gstar_copy
+    return gstar_copy, additions
 
 
 
