@@ -1,6 +1,5 @@
 import numpy as np
 from helpers import *
-from node2vec import Node2Vec
 from probabilistic_attack.LinkPrediction import LinkPredictor
 from itertools import product
 from tqdm import tqdm
