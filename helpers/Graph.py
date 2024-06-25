@@ -192,10 +192,10 @@ class Graph(object):
     @staticmethod
     def from_txt(filepath):
         edges = pd.read_csv(filepath, sep='\t', header=None)
-        nodes = list(set(edges[0].tolist() + edges[1].tolist()))
+        nodes = range(1, max(edges[0].tolist() + edges[1].tolist() ) + 1 ) 
         graph = Graph(nodes, with_fixed_edges=True)
         for i in range(len(edges)):
-            graph.add_edge((edges[0][i], edges[1][i]))
+            graph.add_edge((edges[0][i]-1, edges[1][i]-1))
 
         return graph
 
