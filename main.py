@@ -7,8 +7,8 @@ import numpy as np
 
 
 number_of_experiments = 5
-dataset_name = "polblogs"
-dataset = Graph.from_txt("datasets/polblogs.txt")
+dataset_name = "acm"
+dataset = Graph.from_txt(f"datasets/{dataset_name}.txt")
 DEBUG = True
 
 def mixed_attack_pipeline():
