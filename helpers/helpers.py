@@ -13,7 +13,7 @@ def reconstruction_accuracy(prediction, groundtruth):
     return np.sum(prediction.adj_matrix == groundtruth.adj_matrix) / groundtruth.adj_matrix.size
 
 def rae(prediction, groundtruth):
-    return np.linalg.norm(prediction.adj_matrix - groundtruth.adj_matrix, "fro") / np.linalg.norm(groundtruth.adj_matrix, "fro")
+    return (np.linalg.norm(prediction.adj_matrix - groundtruth.adj_matrix, "fro" ) ** 2 )/ (np.linalg.norm(groundtruth.adj_matrix, "fro") ** 2)
 
 def edge_identification_accuracy(prediction, groundtruth):
     predicted_edges = set(prediction.edges())
