@@ -30,6 +30,7 @@ DEBUG = True
 graph1_props = args.graph1_props
 common_props = [0]
 addition_proportion = args.addition_proportion
+step_size = 1e-3
 
 for expe in range(number_of_experiments):
     for graph1_prop, common_prop in product(graph1_props, common_props):
@@ -54,24 +55,24 @@ for expe in range(number_of_experiments):
         continue_main_loop = True
 
         while continue_main_loop:
-            continue_deterministic = True
-            while continue_deterministic:
-                start = time.time()
-                reconstructed_graph, number_modifs1 = matching_attacks(reconstructed_graph, A)
-                reconstructed_graph, number_modifs2 = completion_attacks(reconstructed_graph, A)
-                end = time.time()
-                display_reconstruction_metrics(reconstructed_graph, dataset)
-                log_graph_stats(graph1_prop, common_prop, expe, "deterministic", reconstructed_graph, 
-                iteration_deterministic, end-start,f"logs_hybrid/{dataset_name}_{heuristic}_{prediction_type}.csv", dataset)
-# # 
-                if number_modifs1 + number_modifs2 == 0:
-                    continue_deterministic = False
+#             continue_deterministic = True
+#             while continue_deterministic:
+#                 start = time.time()
+#                 reconstructed_graph, number_modifs1 = matching_attacks(reconstructed_graph, A)
+#                 reconstructed_graph, number_modifs2 = completion_attacks(reconstructed_graph, A)
+#                 end = time.time()
+#                 display_reconstruction_metrics(reconstructed_graph, dataset)
+#                 log_graph_stats(graph1_prop, common_prop, expe, "deterministic", reconstructed_graph, 
+#                 iteration_deterministic, end-start,f"logs_hybrid/{dataset_name}_{heuristic}_{prediction_type}.csv", dataset)
+# # # 
+#                 if number_modifs1 + number_modifs2 == 0:
+#                     continue_deterministic = False
                 
-                iteration_deterministic += 1
+#                 iteration_deterministic += 1
     
-            start = time.time()
-            step_size = int(len(dataset.edges())*addition_proportion)
-            display_reconstruction_metrics(reconstructed_graph, dataset)
+#             start = time.time()
+#             step_size = int(len(dataset.edges())*addition_proportion)
+#             display_reconstruction_metrics(reconstructed_graph, dataset)
 
             if prediction_type == "G1":
                 probabilistic_function = similarity_based_completion
@@ -85,8 +86,8 @@ for expe in range(number_of_experiments):
                 continue_main_loop = False
 
             display_reconstruction_metrics(reconstructed_graph, dataset)
-            log_graph_stats(graph1_prop, common_prop, expe, "probabilistic", reconstructed_graph, 
-            iteration_probabilistic, end-start,f"logs_hybrid/{dataset_name}_{heuristic}_{prediction_type}.csv", dataset)
+            # log_graph_stats(graph1_prop, common_prop, expe, "probabilistic", reconstructed_graph, 
+            # iteration_probabilistic, end-start,f"logs_hybrid/{dataset_name}_{heuristic}_{prediction_type}.csv", dataset)
             iteration_probabilistic += 1
 # 
         reconstructed_graph.fix_edges()
