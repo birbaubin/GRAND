@@ -70,21 +70,30 @@ for expe in range(number_of_experiments):
             iteration_deterministic += 1
 
 
-        rae_result = rae(reconstructed_graph, dataset)
-        print("RAE before Erdos", rae_result)
+        reconstructed_graph_copy = reconstructed_graph.copy()
 
-        reconstructed_graph.fix_edges()
-        np.save("reconstructed_graph.npy", reconstructed_graph.adj_matrix)
+        # reconstructed_graph.fix_edges()
+        # rae_result = rae(reconstructed_graph, dataset)
+        # print("RAE before Erdos", rae_result)
+
+        # reconstructed_graph.fix_edges()
+        # np.save("reconstructed_graph.npy", reconstructed_graph.adj_matrix)
 
         erdos_result = pd.read_csv(f"erdos/results/{dataset_name}/M", sep="\t", header=None).to_numpy()
         unknown_edges = reconstructed_graph.unknown_edges()
+        # print(len(unknown_edges))
         for edge in unknown_edges:
             n1, n2 = edge
-            reconstructed_graph.adj_matrix[n1, n2] = erdos_result[n1, n2]
+            if erdos_result[n1, n2] == 1:
+                reconstructed_graph.add_edge(edge)
+            else:
+                reconstructed_graph.remove_edge(edge)
 
+        # print(len(reconstructed_graph.unknown_edges()))
         rae_result = rae(reconstructed_graph, dataset)
+        print("RAE after Erdos", rae_result)
 
-        print("RAE result", rae_result)
+        print(reconstructed_graph.adj_matrix == dataset.adj_matrix)
             
     
 #             start = time.time()
