@@ -13,18 +13,20 @@ argparser.add_argument("--heuristic", type=str, default="preferential_attachment
 argparser.add_argument("--number_of_experiments", type=int, default=5)
 argparser.add_argument("--addition_proportion", type=float, default=1e-3)
 argparser.add_argument("--graph1_props", type=float, nargs='+', default=[0.1])
-argparser.add_argument("--prediction_type",  default=['G1'], choices=["G1", "A", "model"], help='attacks')
+argparser.add_argument("--prediction_type",  default='G1', choices=["G1", "A", "model"], help='attacks')
 
 
 args = argparser.parse_args()
-
+DEBUG = True
 number_of_experiments = args.number_of_experiments
 dataset_name = args.dataset
 heuristic = args.heuristic
 prediction_type = args.prediction_type
 
-dataset = Graph.from_txt(f"datasets/{dataset_name}.txt")
-DEBUG = True
+if dataset_name != "block":
+    dataset = Graph.from_txt(f"datasets/{dataset_name}.txt")
+else:
+    dataset = Graph.block_from_txt(f"datasets/{dataset_name}.txt")
 
 
 graph1_props = args.graph1_props
@@ -48,6 +50,8 @@ for expe in range(number_of_experiments):
         print("Number of edges in G1 : ",len(graph1.edges() ) )
 
         reconstructed_graph = graph1_copy(graph1)
+        log_graph_stats(graph1_prop, common_prop, expe, "copy", reconstructed_graph, 
+                expe, 0,f"logs_hybrid/{dataset_name}_{heuristic}_{prediction_type}.csv", dataset)
 
         iteration_deterministic = 0
         iteration_probabilistic = 0
@@ -68,7 +72,7 @@ for expe in range(number_of_experiments):
                     continue_deterministic = False
                 
                 iteration_deterministic += 1
-    
+
             start = time.time()
             step_size = int(len(dataset.edges())*addition_proportion)
             display_reconstruction_metrics(reconstructed_graph, dataset)
@@ -78,9 +82,14 @@ for expe in range(number_of_experiments):
             elif prediction_type == "A":
                 probabilistic_function = A_based_completion
 
+
+            # if G1 = 0, we use A to predict the edges
+            if graph1_prop == 0.0:
+                probabilistic_function = A_based_completion
+
             reconstructed_graph, number_modifs_proba = probabilistic_function(reconstructed_graph, step_size, A, method=heuristic)
             end = time.time()
-            
+
             if number_modifs_proba == 0 or len(reconstructed_graph.unknown_edges()) == 0:
                 continue_main_loop = False
 
@@ -98,5 +107,6 @@ for expe in range(number_of_experiments):
         print("Edge accuracy", edge_accuracy)
 
 
-    
+
+        
 

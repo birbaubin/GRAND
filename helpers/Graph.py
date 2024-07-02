@@ -192,10 +192,26 @@ class Graph(object):
     @staticmethod
     def from_txt(filepath):
         edges = pd.read_csv(filepath, sep='\t', header=None)
-        nodes = range(1, max(edges[0].tolist() + edges[1].tolist() ) + 1 ) 
+        nodes = list(range(0, max(edges[0].tolist() + edges[1].tolist() ) ))
         graph = Graph(nodes, with_fixed_edges=True)
         for i in range(len(edges)):
             graph.add_edge((edges[0][i]-1, edges[1][i]-1))
+
+        return graph
+
+    @staticmethod
+    def block_from_txt(filepath):
+        edges = pd.read_csv(filepath, sep='\t', header=None)
+        max_partition_1 = max(edges[0].tolist())
+        nodes_partition_1 = list(range(0, max_partition_1 ) )
+        nodes_partition_2 = list(range(max_partition_1, max(edges[1].tolist()) + max_partition_1 ))
+        nodes = nodes_partition_1 + nodes_partition_2
+        graph = Graph(nodes, with_fixed_edges=True)
+        for i in range(len(edges)):
+            n1 = edges[0][i]-1
+            n2 = edges[1][i]-1 + max_partition_1
+            # print("Adding edge ", n1 + 1, n2 -)
+            graph.add_edge((n1, n2))
 
         return graph
 
