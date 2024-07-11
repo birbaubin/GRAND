@@ -13,6 +13,7 @@ class Graph(object):
             self.adj_matrix = np.full((self.size, self.size), 2, dtype=int)
             for i in range(self.size):
                 self.adj_matrix[i][i] = 0
+        self.first_partition_size = 0
 
     def add_edge(self, edge):
         n1, n2 = edge
@@ -210,9 +211,9 @@ class Graph(object):
         for i in range(len(edges)):
             n1 = edges[0][i]-1
             n2 = edges[1][i]-1 + max_partition_1
-            # print("Adding edge ", n1 + 1, n2 -)
             graph.add_edge((n1, n2))
 
+        graph.first_partition_size = max_partition_1
         return graph
 
     def unknown_edges(self):
@@ -247,6 +248,16 @@ class Graph(object):
                     self.adj_matrix[i][j] = 0
                     self.adj_matrix[j][i] = 0
 
+
+    def global_clustering_coefficient(self):
+        adj_matrix = self.adj_matrix
+        adj_matrix_3 = np.dot(adj_matrix, np.dot(adj_matrix, adj_matrix))
+        adj_matrix_2 = np.dot(adj_matrix, adj_matrix)
+        numerator = 1/6 * np.trace(adj_matrix_3)
+        denominator = 1/2 * np.sum(adj_matrix_2[i, j] for i in range(self.size) for j in range(self.size) if i != j)
+        return numerator / denominator
+
+
     def to_networkx(self):
         import networkx as nx
         G = nx.Graph()
@@ -256,5 +267,11 @@ class Graph(object):
                 if self.adj_matrix[i][j] == 1:
                     G.add_edge(i, j)
         return G
+
+    def to_txt(self, filepath):
+        with open(filepath, 'w') as f:
+            for (n1, n2) in self.edges():
+                f.write(f"{n1+1}\t{n2+1 - self.first_partition_size}\n")
+
 
                     

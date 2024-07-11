@@ -1,6 +1,6 @@
 from helpers.helpers import *
 from helpers.Graph import Graph
-from itertools import product 
+from itertools import product, combinations
 
 
 
@@ -52,33 +52,107 @@ def graph1_copy(graph1):
     reconstructed_graph.add_edges_from(graph1.edges())
     return reconstructed_graph
 
+def hub_and_isolated_node_nattack(reconstructed_graph, A, hub_threshold=0.5):
+    number_modifs = 0
+    for i in tqdm(range(A.shape[0]), desc="Hub attack"):
+        if A[i, i] >= hub_threshold*len(reconstructed_graph.nodes):
+            for node in range(A.shape[0]):
+                if reconstructed_graph.adj_matrix[i, j] == 2:
+                    reconstructed_graph.add_edge((i, j))
+                    number_modifs += 1
+
+        if A[i, i] == 0:
+            for j in range(A.shape[0]):
+                if reconstructed_graph.adj_matrix[i, j] == 2:
+                    reconstructed_graph.add_edge((i, j))
+                    number_modifs += 1
+
+    return reconstructed_graph, number_modifs
 
 
-def petersen_style_graphs(n):
+def degree_one_attack(reconstructed_graph, A):
+    number_modifs = 0
+    for i in tqdm(range(A.shape[0]), desc="Degree one attack"):
+        if A[i, i] == 1:
+            degree = np.sum(A[i]) 
+            candidates = np.where(np.diag(A) == degree)[0] 
+            if len(candidates) == 1 and reconstructed_graph.does_not_know_edge((i, candidates[0])):
+                    reconstructed_graph.add_edge((i, candidates[0]))
+                    number_modifs += 1
 
-    size = int(n/2)
-    adj_matrix_1 = np.zeros((n, n))
-    for i in range(size):
-        for j in range(i+1, size):
-            if j == i+1:
-                adj_matrix_1[i][j] = 1
-                adj_matrix_1[j][i] = 1
-        if i == size-1:
-            adj_matrix_1[i][0] = 1
-            adj_matrix_1[0][i] = 1
-
-    adj_matrix_2 = np.zeros((n, n))
-    for i in range(size, n):
-        for j in range(i+1, n):
-            if j == i+2 or j == i+3:
-                adj_matrix_2[i][j] = 1
-                adj_matrix_2[j][i] = 1
+    return reconstructed_graph, number_modifs
 
 
-    graph1 = Graph(list(range(n)), with_fixed_edges=True)
-    graph2 = Graph(list(range(n)), with_fixed_edges=True)
-    graph1.adj_matrix = adj_matrix_1
-    graph2.adj_matrix = adj_matrix_2
+def degree_attack(reconstructed_graph, A, degrees):
+    number_modifs = 0
+    for i in tqdm(range(A.shape[0]), desc="Degree attack"):
+        if A[i, i] not in degrees:
+            continue
+        degree = np.sum(A[i]) 
+        candidate = None
+        possibilities = np.where(np.diag(A) <= degree - A[i, i] + 1)[0]
+        for comb in combinations(possibilities, A[i, i]):
+            sum_of_degrees = 0
+
+            for k in comb:
+                sum_of_degrees += A[k, k]
+
+            if sum_of_degrees == degree:
+                if candidate == None:
+                    candidate = comb
+                else:
+                    candidate = None
+                    break
+        
+        if candidate != None:
+            for j in candidate:
+                if reconstructed_graph.does_not_know_edge((i, j)):
+                    reconstructed_graph.add_edge((i, j))
+                    number_modifs += 1
+
+    return reconstructed_graph, number_modifs
 
 
-    return graph1, graph2
+def triangle_attack(reconstructed_graph, A):
+    number_modifs = 0
+    for (u, v) in tqdm(reconstructed_graph.edges(), desc="Triangle attack"):
+
+        g2_u = np.where(A[u] > 0)[0]
+        g2_u = np.setdiff1d(g2_u, u)
+        g2_v = np.where(A[v] > 0)[0]
+        g2_v = np.setdiff1d(g2_v, v)
+
+        candidates = np.intersect1d(g2_u, g2_v)
+
+        if len(candidates) == A[u, v]:
+            for w in candidates:
+                if not reconstructed_graph.has_edge((u, w)):
+                    reconstructed_graph.add_edge((u, w))
+                    number_modifs += 1
+                if not reconstructed_graph.has_edge((v, w)):
+                    reconstructed_graph.add_edge((v, w))
+                    number_modifs += 1
+
+
+    return reconstructed_graph, number_modifs
+
+def rectangle_attack(reconstructed_graph, A, degrees=[1, 2, 3, 4, 5]):
+    additions = 0
+
+    for k in tqdm(degrees):
+
+        nodes_of_degree_k  = np.where(np.diag(A) == k)[0]
+        candidates = [ node for node in nodes_of_degree_k if len(reconstructed_graph.neighbors(node)) == k]
+
+        for node in candidates:
+            neighbors = reconstructed_graph.neighbors(node)
+            for graph_node in reconstructed_graph.nodes:
+                if A[node, graph_node] == k:
+                    for neighbor in neighbors:
+                        if not reconstructed_graph.has_edge((neighbor, graph_node)):
+                            reconstructed_graph.add_edge((neighbor, graph_node))
+                            additions += 1
+ 
+
+    return reconstructed_graph, additions
+
