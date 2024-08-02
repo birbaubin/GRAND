@@ -63,6 +63,7 @@ for expe in range(number_of_experiments):
             number_modifs_hub = 0
             number_modifs_rectangle = 0
             number_modifs_triangle = 0
+        
 
             start = time.time()
             reconstructed_graph, number_modifs_matching = matching_attacks(reconstructed_graph, A)

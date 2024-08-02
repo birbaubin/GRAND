@@ -23,10 +23,12 @@ dataset_name = args.dataset
 heuristic = args.heuristic
 prediction_type = args.prediction_type
 
-if dataset_name != "block":
+if not dataset_name.startswith("block"):
     dataset = Graph.from_txt(f"datasets/{dataset_name}.txt")
 else:
     dataset = Graph.block_from_txt(f"datasets/{dataset_name}.txt")
+
+# clustering_coef = dataset.global_clustering_coefficient()
 
 
 graph1_props = args.graph1_props
@@ -50,6 +52,14 @@ for expe in range(number_of_experiments):
         print("Number of edges in G1 : ",len(graph1.edges() ) )
 
         reconstructed_graph = graph1_copy(graph1)
+        number_modifs_degree = 0
+        number_modifs_hub = 0
+        reconstructed_graph, number_modifs_degree = degree_attack(reconstructed_graph, A , [1, 2])
+        reconstructed_graph, number_modifs_hub = hub_and_isolated_node_nattack(reconstructed_graph, A, 1)
+        # display_graph_stats(reconstructed_graph)
+        # print("Modifications by degree attack: ", number_modifs_degree)
+        # print("Modifications by hub attack: ", number_modifs_hub)
+        
         log_graph_stats(graph1_prop, common_prop, expe, "copy", reconstructed_graph, 
                 expe, 0,f"logs_hybrid/{dataset_name}_{heuristic}_{prediction_type}.csv", dataset)
 
@@ -59,18 +69,37 @@ for expe in range(number_of_experiments):
 
         while continue_main_loop:
             continue_deterministic = True
+
             while continue_deterministic:
+
+                number_modifs_matching = 0
+                number_modifs_completion = 0
+                number_modifs_hub = 0
+                number_modifs_rectangle = 0
+                number_modifs_triangle = 0
+
                 start = time.time()
-                reconstructed_graph, number_modifs1 = matching_attacks(reconstructed_graph, A)
-                reconstructed_graph, number_modifs2 = completion_attacks(reconstructed_graph, A)
+                reconstructed_graph, number_modifs_matching = matching_attacks(reconstructed_graph, A)
+                reconstructed_graph, number_modifs_completion = completion_attacks(reconstructed_graph, A)
+                reconstructed_graph, number_modifs_rectangle = rectangle_attack(reconstructed_graph, A, np.linspace(start=1, stop=150, num=150, dtype=int, endpoint=True))
+                reconstructed_graph, number_modifs_triangle = triangle_attack(reconstructed_graph, A)
                 end = time.time()
-                display_reconstruction_metrics(reconstructed_graph, dataset)
-                log_graph_stats(graph1_prop, common_prop, expe, "deterministic", reconstructed_graph, 
+                
+                # print("Modifications by matching attacks: ", number_modifs_matching)
+                # print("Modifications by completion attacks: ", number_modifs_completion)
+                # print("Modifications by rectangle attack: ", number_modifs_rectangle)
+                # print("Modifications by triangle attack: ", number_modifs_triangle)
+
+                display_graph_stats(reconstructed_graph)
+
+                log_graph_stats(graph1_prop, common_prop, expe, "deterministic", reconstructed_graph,
                 iteration_deterministic, end-start,f"logs_hybrid/{dataset_name}_{heuristic}_{prediction_type}.csv", dataset)
-# # 
-                if number_modifs1 + number_modifs2 == 0:
+
+                if number_modifs_matching + number_modifs_completion + number_modifs_hub + number_modifs_rectangle + number_modifs_degree + number_modifs_triangle == 0:
                     continue_deterministic = False
                 
+                number_modifs_degree = 0
+
                 iteration_deterministic += 1
 
             start = time.time()
@@ -96,6 +125,7 @@ for expe in range(number_of_experiments):
             display_reconstruction_metrics(reconstructed_graph, dataset)
             log_graph_stats(graph1_prop, common_prop, expe, "probabilistic", reconstructed_graph, 
             iteration_probabilistic, end-start,f"logs_hybrid/{dataset_name}_{heuristic}_{prediction_type}.csv", dataset)
+
             iteration_probabilistic += 1
 # 
         reconstructed_graph.fix_edges()
@@ -103,10 +133,6 @@ for expe in range(number_of_experiments):
         distance = frobenius_distance(reconstructed_graph, dataset)
         rae_stat = rae(reconstructed_graph, dataset)
         edge_accuracy = edge_identification_accuracy(reconstructed_graph, dataset)
-
-        print("Edge accuracy", edge_accuracy)
-
-
 
         
 

@@ -113,6 +113,7 @@ def degree_attack(reconstructed_graph, A, degrees):
     return reconstructed_graph, number_modifs
 
 
+
 def triangle_attack(reconstructed_graph, A):
     number_modifs = 0
     for (u, v) in tqdm(reconstructed_graph.edges(), desc="Triangle attack"):
@@ -155,4 +156,6 @@ def rectangle_attack(reconstructed_graph, A, degrees=[1, 2, 3, 4, 5]):
  
 
     return reconstructed_graph, additions
+
+
 
