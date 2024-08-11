@@ -27,7 +27,7 @@ def completion_attacks(reconstructed_graph, A):
 
     for i in tqdm(range(len(reconstructed_graph.nodes)), desc="Completion attacks"):
         for j in range(i, len(reconstructed_graph.nodes)):
-            unknowed_edges_i = np.where(reconstructed_graph.adj_matrix[i] == 2)[0]
+            unknowed_edges_i = np.where(reconstructed_graph.y[i] == 2)[0]
             unknowed_edges_j = np.where(reconstructed_graph.adj_matrix[j] == 2)[0]
 
             if len(reconstructed_graph.neighbors(i)) == A[i, j] - len(unknowed_edges_i):
@@ -76,7 +76,7 @@ def degree_one_attack(reconstructed_graph, A):
         if A[i, i] == 1:
             degree = np.sum(A[i]) 
             candidates = np.where(np.diag(A) == degree)[0] 
-            if len(candidates) == 1 and reconstructed_graph.does_not_know_edge((i, candidates[0])):
+            if len(candidates) == 1 and reconstructed_graph.adj_matrix[i, candidates[0]] == 2:
                     reconstructed_graph.add_edge((i, candidates[0]))
                     number_modifs += 1
 
@@ -106,7 +106,7 @@ def degree_attack(reconstructed_graph, A, degrees):
         
         if candidate != None:
             for j in candidate:
-                if reconstructed_graph.does_not_know_edge((i, j)):
+                if reconstructed_graph.adj_matrix[i, j] == 2:
                     reconstructed_graph.add_edge((i, j))
                     number_modifs += 1
 
@@ -127,10 +127,10 @@ def triangle_attack(reconstructed_graph, A):
 
         if len(candidates) == A[u, v]:
             for w in candidates:
-                if not reconstructed_graph.has_edge((u, w)):
+                if reconstructed_graph.adj_matrix[u, w] == 2:
                     reconstructed_graph.add_edge((u, w))
                     number_modifs += 1
-                if not reconstructed_graph.has_edge((v, w)):
+                if not reconstructed_graph.adj_matrix[v, w] == 2:
                     reconstructed_graph.add_edge((v, w))
                     number_modifs += 1
 
@@ -150,7 +150,7 @@ def rectangle_attack(reconstructed_graph, A, degrees=[1, 2, 3, 4, 5]):
             for graph_node in reconstructed_graph.nodes:
                 if A[node, graph_node] == k:
                     for neighbor in neighbors:
-                        if not reconstructed_graph.has_edge((neighbor, graph_node)):
+                        if reconstructed_graph.adj_matrix[neighbor, graph_node] == 2:
                             reconstructed_graph.add_edge((neighbor, graph_node))
                             additions += 1
  

@@ -58,7 +58,7 @@ def display_reconstruction_metrics(prediction, groundtruth):
     t.add_row(['Edge identification accuracy', edge_accuracy])
     print(t, "\n")
 
-def log_graph_stats(graph1_prob, common_prob, expe, attack_type, graph, iter_number, time, file_name, groundtruth, ):
+def log_graph_stats(graph1_prob, common_prob, expe, attack_type, graph, iter_number, time, file_name, groundtruth):
     stats = graph.stats()
     TP, FP, TN, FN = ROC_stats(graph, groundtruth)
     with open(file_name, "a+") as f:
@@ -209,3 +209,33 @@ def random_graph(n, p):
             if adj_matrix[i][j] == 1:
                 graph.add_edge((i, j))
     return graph
+
+
+def petersen_style_graphs(n):
+
+    size = int(n/2)
+    adj_matrix_1 = np.zeros((n, n))
+    for i in range(size):
+        for j in range(i+1, size):
+            if j == i+1:
+                adj_matrix_1[i][j] = 1
+                adj_matrix_1[j][i] = 1
+        if i == size-1:
+            adj_matrix_1[i][0] = 1
+            adj_matrix_1[0][i] = 1
+
+    adj_matrix_2 = np.zeros((n, n))
+    for i in range(size, n):
+        for j in range(i+1, n):
+            if j == i+2 or j == i+3:
+                adj_matrix_2[i][j] = 1
+                adj_matrix_2[j][i] = 1
+
+
+    graph1 = Graph(list(range(n)), with_fixed_edges=True)
+    graph2 = Graph(list(range(n)), with_fixed_edges=True)
+    graph1.adj_matrix = adj_matrix_1
+    graph2.adj_matrix = adj_matrix_2
+
+
+    return graph1, graph2
