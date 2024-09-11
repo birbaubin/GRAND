@@ -27,7 +27,7 @@ def completion_attacks(reconstructed_graph, A):
 
     for i in tqdm(range(len(reconstructed_graph.nodes)), desc="Completion attacks"):
         for j in range(i, len(reconstructed_graph.nodes)):
-            unknowed_edges_i = np.where(reconstructed_graph.y[i] == 2)[0]
+            unknowed_edges_i = np.where(reconstructed_graph.adj_matrix[i] == 2)[0]
             unknowed_edges_j = np.where(reconstructed_graph.adj_matrix[j] == 2)[0]
 
             if len(reconstructed_graph.neighbors(i)) == A[i, j] - len(unknowed_edges_i):
@@ -46,9 +46,7 @@ def completion_attacks(reconstructed_graph, A):
 
 
 def graph1_copy(graph1):
-
     reconstructed_graph = Graph(graph1.nodes, with_fixed_edges=False)
-    display_graph_stats(reconstructed_graph)
     reconstructed_graph.add_edges_from(graph1.edges())
     return reconstructed_graph
 
@@ -57,14 +55,14 @@ def hub_and_isolated_node_nattack(reconstructed_graph, A, hub_threshold=0.5):
     for i in tqdm(range(A.shape[0]), desc="Hub attack"):
         if A[i, i] >= hub_threshold*len(reconstructed_graph.nodes):
             for node in range(A.shape[0]):
-                if reconstructed_graph.adj_matrix[i, j] == 2:
-                    reconstructed_graph.add_edge((i, j))
+                if reconstructed_graph.adj_matrix[i, node] == 2:
+                    reconstructed_graph.add_edge((i, node))
                     number_modifs += 1
 
         if A[i, i] == 0:
             for j in range(A.shape[0]):
                 if reconstructed_graph.adj_matrix[i, j] == 2:
-                    reconstructed_graph.add_edge((i, j))
+                    reconstructed_graph.remove_edge((i, j))
                     number_modifs += 1
 
     return reconstructed_graph, number_modifs
@@ -116,7 +114,8 @@ def degree_attack(reconstructed_graph, A, degrees):
 
 def triangle_attack(reconstructed_graph, A):
     number_modifs = 0
-    for (u, v) in tqdm(reconstructed_graph.edges(), desc="Triangle attack"):
+    edges = reconstructed_graph.edges()
+    for (u, v) in tqdm(edges, desc="Triangle attack"):
 
         g2_u = np.where(A[u] > 0)[0]
         g2_u = np.setdiff1d(g2_u, u)
@@ -130,7 +129,7 @@ def triangle_attack(reconstructed_graph, A):
                 if reconstructed_graph.adj_matrix[u, w] == 2:
                     reconstructed_graph.add_edge((u, w))
                     number_modifs += 1
-                if not reconstructed_graph.adj_matrix[v, w] == 2:
+                if reconstructed_graph.adj_matrix[v, w] == 2:
                     reconstructed_graph.add_edge((v, w))
                     number_modifs += 1
 
@@ -140,7 +139,7 @@ def triangle_attack(reconstructed_graph, A):
 def rectangle_attack(reconstructed_graph, A, degrees=[1, 2, 3, 4, 5]):
     additions = 0
 
-    for k in tqdm(degrees):
+    for k in tqdm(degrees, desc="Rectangle attack:"):
 
         nodes_of_degree_k  = np.where(np.diag(A) == k)[0]
         candidates = [ node for node in nodes_of_degree_k if len(reconstructed_graph.neighbors(node)) == k]
