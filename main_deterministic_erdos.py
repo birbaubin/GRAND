@@ -5,7 +5,7 @@ from helpers.Graph import Graph
 from itertools import product
 import numpy as np
 import argparse
-from revisited_erdos import *
+from revisited_erdos_2 import *
 
 
 argparser = argparse.ArgumentParser()
@@ -47,7 +47,7 @@ for expe in range(number_of_experiments):
         reconstructed_graph = graph1_copy(graph1)
         display_graph_stats(reconstructed_graph)
         log_graph_stats(graph1_prop, common_prop, expe, "copy", reconstructed_graph, 
-                0, 0,f"logs_erdos/{dataset_name}.csv", dataset)
+                0, 0,f"logs_erdos/{dataset_name}_expe.csv", dataset)
 
         print("--- DEGREE AND HUB ATTACK ---")
         # Degree and hub attack
@@ -59,7 +59,7 @@ for expe in range(number_of_experiments):
         print("Number of modifs hub = ", number_modifs_hub)
 
         log_graph_stats(graph1_prop, common_prop, expe, "degree_hub", reconstructed_graph, 
-                0, 0,f"logs_erdos/{dataset_name}.csv", dataset)
+                0, 0,f"logs_erdos/{dataset_name}_expe.csv", dataset)
 
 
         iteration_deterministic = 0
@@ -79,8 +79,9 @@ for expe in range(number_of_experiments):
             start = time.time()
             reconstructed_graph, number_modifs_matching = matching_attacks(reconstructed_graph, A)
             reconstructed_graph, number_modifs_completion = completion_attacks(reconstructed_graph, A)
-            reconstructed_graph, number_modifs_rectangle = rectangle_attack(reconstructed_graph, A, np.linspace(start=1, stop=150, num=150, dtype=int, endpoint=True))
+            reconstructed_graph, number_modifs_rectangle = rectangle_attack(reconstructed_graph, A, [1, 2, 3, 4, 5])
             reconstructed_graph, number_modifs_triangle = triangle_attack(reconstructed_graph, A)
+            reconstructed_graph, number_modifs_degree = weird_attack(reconstructed_graph, A)
             end = time.time()
             print("Number of modifs matching = ", number_modifs_matching)
             print("Number of modifs completion = ", number_modifs_completion)
@@ -90,8 +91,8 @@ for expe in range(number_of_experiments):
 
             display_graph_stats(reconstructed_graph)
 
-            log_graph_stats(graph1_prop, common_prop, expe, "deterministic", reconstructed_graph,
-            iteration_deterministic, end-start,f"logs_erdos/{dataset_name}.csv", dataset)
+            # log_graph_stats(graph1_prop, common_prop, expe, "deterministic", reconstructed_graph,
+            # iteration_deterministic, end-start,f"logs_erdos/{dataset_name}_expe.csv", dataset)
 
         
             if number_modifs_matching + number_modifs_completion + number_modifs_hub + number_modifs_rectangle + number_modifs_degree + number_modifs_triangle == 0:
@@ -103,12 +104,12 @@ for expe in range(number_of_experiments):
     
         if len(reconstructed_graph.edges()) < number_of_edges:
             print("--- REVISITED ERDOS ---")
-            reconstructed_graph.fix_edges()
+            # reconstructed_graph.fix_edges()
             start = time.time()
             reconstructed_graph = Graph.from_adj_matrix(GRAND(A, reconstructed_graph, 0.5))
             end = time.time()
             log_graph_stats(graph1_prop, common_prop, expe, "erdos", reconstructed_graph,
-            0, end-start,f"logs_erdos/{dataset_name}.csv", dataset)
+            0, end-start,f"logs_erdos/{dataset_name}_expe.csv", dataset)
 
            
         display_graph_stats(reconstructed_graph)

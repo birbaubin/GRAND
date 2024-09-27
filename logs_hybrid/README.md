@@ -1,1 +1,0 @@
-Here will be stored the results of the hybrid attacks. One file is created for each dataset.
