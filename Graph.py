@@ -144,7 +144,7 @@ class Graph(object):
         return self.adj_matrix[n1][n2] == 0
 
     def edges(self):
-        return [(i, j) for i in range(self.size) for j in range(i+1, self.size) if self.adj_matrix[i][j] == 1]
+        return [(i, j) for i in range(self.size) for j in range(i, self.size) if self.adj_matrix[i][j] == 1]
 
     def common_neighbors(self, edge):
         n1, n2 = edge
