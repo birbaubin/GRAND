@@ -7,6 +7,8 @@ from revisited_spectral import RevisitedSpectral
 from erdos import SpectralAttack
 from deterministic_attack import DeterministicAttack
 from helpers import *
+import os
+
 
 
 argparser = argparse.ArgumentParser()
@@ -14,6 +16,8 @@ argparser.add_argument("--dataset", type=str, default="polblogs")
 argparser.add_argument("--type", type=str, default="D", choices=["D", "P", "DP", "DPD"])
 argparser.add_argument("--n_experiments", type=int, default=5)
 argparser.add_argument("--graph1_props", type=float, nargs='+', default=[0.0])
+argparser.add_argument("--proba_params", type=float, nargs='+', default=[0.5, 0.5])
+
 
 
 args = argparser.parse_args()
@@ -25,8 +29,17 @@ if dataset_name != "block":
 else:
     G = Graph.block_from_txt(f"datasets/{dataset_name}.txt")
 
+
+# create dataset.csv file if it does not exist
+with open(f"logs/{dataset_name}.csv", "a") as f:
+    if os.stat(f"logs/{dataset_name}.csv").st_size == 0:
+        f.write(
+        "expe,attack_type,alpha,beta,graph1_prop,common_prop,iter_number," +
+        "impossible_edges,reconstructed_edges,unknown_edges,TP,FP,TN,FN,time\n")
+
 graph1_props = args.graph1_props
 expe_type = args.type
+proba_params = args.proba_params
 common_props = [0]
 
 
@@ -36,21 +49,23 @@ if expe_type == "P":
     print("1. Spectral attack (Erdos et al.)")
     attack = SpectralAttack(A, 0.5)
     attack.run()
-    reconstructed_graph = attack.get_reconstructed_graph()
-    log_graph_stats(0,0,0,"spectral", reconstructed_graph, 0,0,f"logs/{dataset_name}", G)
+    Gstar = attack.get_reconstructed_graph()
+    log_graph_stats(0, 1, 0, expe_type, 
+            [None, None], 0, 0, f"logs/{dataset_name}.csv", Gstar, G)
 
 elif expe_type == "D":
-    print("\n######## 2. Deterministic attacks ########")
+    print("\n\n########################## Deterministic ##########################\n\n")
     for expe in range(number_of_experiments):
         for graph1_prop, common_prop in product(graph1_props, common_props):
             G1, G2 = G.split_dataset(common_prop=common_prop, graph1_prop=graph1_prop)
             deterministic_attack = DeterministicAttack(G1, A)
             deterministic_attack.run()
             Gstar = deterministic_attack.get_reconstructed_graph()
-            log_graph_stats(graph1_prop, common_prop, expe, "D", expe_type, 0, 0, f"logs/{dataset_name}", G)
+            log_graph_stats(graph1_prop, common_prop, expe, expe_type, 
+            [None, None], 0, 0, f"logs/{dataset_name}.csv", Gstar, G)
 
 elif expe_type == "DP":
-    print("\n######## Deterministic - Probabilistic ########")
+    print("\n\n########################## Deterministic - Probabilistic ##########################\n\n")
     for expe in range(number_of_experiments):
         for graph1_prop, common_prop in product(graph1_props, common_props):
             G1, G2 = G.split_dataset(common_prop=common_prop, graph1_prop=graph1_prop)
@@ -58,13 +73,13 @@ elif expe_type == "DP":
             deterministic_attack.run()
             Gstar = deterministic_attack.get_reconstructed_graph()
             rev_spectral_attack = RevisitedSpectral(Gstar, A)
-            rev_spectral_attack.run()
+            rev_spectral_attack.run(alpha=proba_params[0], beta=proba_params[1])
             Gstar = rev_spectral_attack.get_reconstructed_graph()
-            log_graph_stats(graph1_prop, common_prop, expe, expe_type, Gstar, 0, 0, f"logs/{dataset_name}", G)
-
+            log_graph_stats(graph1_prop, common_prop, expe, expe_type, 
+            proba_params, 0, 0, f"logs/{dataset_name}.csv", Gstar, G)
 
 elif expe_type == "DPD":
-    print("\n######## Deterministic - Probabilistic - Deterministic ########")
+    print("\n\n########################## Deterministic - Probabilistic - Deterministic #########################\n\n")
     for expe in range(number_of_experiments):
         for graph1_prop, common_prop in product(graph1_props, common_props):
             G1, G2 = G.split_dataset(common_prop=common_prop, graph1_prop=graph1_prop)
@@ -72,25 +87,18 @@ elif expe_type == "DPD":
             deterministic_attack.run()
             Gstar = deterministic_attack.get_reconstructed_graph()
             rev_spectral_attack = RevisitedSpectral(Gstar, A)
-            rev_spectral_attack.run()
+            rev_spectral_attack.run(alpha=proba_params[0], beta=proba_params[1])
             rev_spectral_attack.sanity_check()
             Gstar = rev_spectral_attack.get_reconstructed_graph()
             deterministic_attack = DeterministicAttack(Gstar, A)
             deterministic_attack.run()
             Gstar = deterministic_attack.get_reconstructed_graph()
             Gstar.fix_edges()
-            log_graph_stats(graph1_prop, common_prop, expe, expe_type, Gstar, 0, 0, f"logs/{dataset_name}", G)
-            error_edges = np.argwhere(Gstar.adj_matrix != G.adj_matrix)
-            print("Error edges: ", error_edges)
-
-            for edge in error_edges:
-                print(edge, Gstar.adj_matrix[edge[0], edge[1]], G.adj_matrix[edge[0], edge[1]])
-
+            log_graph_stats(graph1_prop, common_prop, expe, expe_type, 
+            proba_params, 0, 0, f"logs/{dataset_name}.csv", Gstar, G)
 else:
     print("Unknown experiment type")
     exit(1)
-
-print("Done")
 
 
     
