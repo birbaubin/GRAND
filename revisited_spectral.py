@@ -41,8 +41,8 @@ class RevisitedSpectral:
             distance_plus_M_binary = np.linalg.norm(M_star_plus - binary_M_star_plus, ord='fro')
             distance_minus_M_binary = np.linalg.norm(M_star_minus - binary_M_star_minus, ord='fro')
 
-            distance_plus = alpha * distance_plus_M_G + beta * distance_plus_M_binary #+ distance_plus_M_non_edges
-            distance_minus = alpha * distance_minus_M_G + beta * distance_minus_M_binary #+ distance_minus_M_non_edges
+            distance_plus = alpha * distance_plus_M_binary + beta * distance_plus_M_G #+ distance_plus_M_non_edges
+            distance_minus = alpha * distance_minus_M_binary + beta * distance_minus_M_G #+ distance_minus_M_non_edges
 
             if distance_plus < distance_minus:
                 M_star = M_star_plus
@@ -50,7 +50,6 @@ class RevisitedSpectral:
                 M_star = M_star_minus
             else:
                 M_star = M_star_plus
-
 
         M_star = np.where(M_star >= threshold, 1, 0)
 
@@ -97,8 +96,8 @@ class RevisitedSpectral:
             distance_squares_plus = np.linalg.norm(np.dot(M_star_plus, M_star_plus.T) - self.A, ord='fro')
             distance_squares_minus = np.linalg.norm(np.dot(M_star_minus, M_star_minus.T) - self.A, ord='fro')
 
-            distance_plus = alpha * distance_plus_M_G + beta * distance_plus_M_binary + gamma * distance_squares_plus #+ distance_plus_M_non_edges
-            distance_minus = alpha * distance_minus_M_G + beta * distance_minus_M_binary + gamma * distance_squares_minus#+ distance_minus_M_non_edges
+            distance_plus = beta * distance_plus_M_G + alpha * distance_plus_M_binary + gamma * distance_squares_plus #+ distance_plus_M_non_edges
+            distance_minus = beta * distance_minus_M_G + alpha * distance_minus_M_binary + gamma * distance_squares_minus#+ distance_minus_M_non_edges
 
             print(f"Distance plus: {distance_squares_plus}, distance minus: {distance_squares_minus}")
 
@@ -152,8 +151,8 @@ class RevisitedSpectral:
             distance_plus_M_binary = np.linalg.norm(M_star_plus - self.G.adj_matrix, ord='fro')
             distance_minus_M_binary = np.linalg.norm(M_star_minus - self.G.adj_matrix, ord='fro')
 
-            distance_plus = alpha * distance_plus_M_G + beta * distance_plus_M_binary #+ distance_plus_M_non_edges
-            distance_minus = alpha * distance_minus_M_G + beta * distance_minus_M_binary #+ distance_minus_M_non_edges
+            distance_plus = beta * distance_plus_M_G + alpha * distance_plus_M_binary #+ distance_plus_M_non_edges
+            distance_minus = beta * distance_minus_M_G + alpha * distance_minus_M_binary #+ distance_minus_M_non_edges
 
             if distance_plus < distance_minus:
                 M_star = M_star_plus
@@ -176,22 +175,22 @@ class RevisitedSpectral:
 
         
     def sanity_check(self):
+        print("************ Revisited Spectral attack - Sanity Check ************")
         modifs = 0
         slots_to_forget = set()
         A_prime = np.dot(self.reconstructed_graph.adj_matrix, self.reconstructed_graph.adj_matrix.T)
         row_correctness = self.A == A_prime
+
         for i in range(self.A.shape[0]):
             for j in range(i, self.A.shape[1]):
-                if self.A[i, j] != A_prime[i, j]:
-                # if self.A[i, j] != A_prime[i, j] and self.A[i, i] == A_prime[i, i]:
+                if self.A[i, j] != A_prime[i, j] and A_prime[i, i] == self.A[i, i]:
                     for k in range(self.A.shape[0]):
                         if self.last_G.adj_matrix[i, k] == 2:
                             self.reconstructed_graph.adj_matrix[j, k] = 2
                             self.reconstructed_graph.adj_matrix[k, j] = 2
                             modifs += 1
                             slots_to_forget.add(j)
-                if self.A[i, j] != A_prime[i, j]:
-                # if self.A[i, j] != A_prime[i, j] and self.A[j, j] == A_prime[j, j]:
+                if self.A[i, j] != A_prime[i, j] and A_prime[j, j] == self.A[j, j]:
                     for k in range(self.A.shape[0]):
                         if self.last_G.adj_matrix[j, k] == 2:
                             self.reconstructed_graph.adj_matrix[i, k] = 2
@@ -199,9 +198,8 @@ class RevisitedSpectral:
                             modifs += 1
                             slots_to_forget.add(i)
 
-
         print(f"Updated {modifs} edges in G*")
-        print(f"Slots to forget: {slots_to_forget}")
+
 
 
     def get_reconstructed_graph(self):

@@ -121,6 +121,18 @@ class DeterministicAttack:
                         reconstructed_graph.add_edge((v, w))
                         number_modifs += 1
 
+    def triangle_bis(self):
+        number_modifs = 0
+        reconstructed_graph = self.reconstructed_graph.copy()
+        A = self.A
+
+        for i in tqdm(range(A.shape[0]), desc="Triangle attack Bis"):
+            if A[i, i] == len(reconstructed_graph.neighbors(i)) and A[i, i] > 2:
+                neighbors = reconstructed_graph.neighbors(i)
+                candidates = [node for node in neighbors if A[i, node] == 1]
+                if len(candidates) == 2 and reconstructed_graph.adj_matrix[candidates[0], candidates[1]] == 2:
+                    reconstructed_graph.add_edge((candidates[0], candidates[1]))
+                    number_modifs += 1
 
         self.reconstructed_graph = reconstructed_graph
         self.modifications += number_modifs
@@ -167,9 +179,11 @@ class DeterministicAttack:
             if run_completion:
                 self.completion_attacks()
             if run_rectangle:
-                self.rectangle_attack()
+                self.rectangle_attack(degrees=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
             if run_triangle:
                 self.triangle_attack()
+
+            # self.triangle_bis()
             
             end = time.time()
 
