@@ -62,7 +62,8 @@ def log_graph_stats(graph1_prob, common_prob, expe, attack_type, proba_params, i
     stats = prediction.stats()
     TP, FP, TN, FN = ROC_stats(prediction, groundtruth)
     with open(file_name, "a+") as f:
-        f.write(f"{expe},{attack_type},{proba_params[0]},{proba_params[1]},{graph1_prob},{common_prob},{iter_number},{stats[0]},{stats[1]},{stats[2]},{TP},{FP},{TN},{FN},{time}\n")
+        f.write(f"{expe},{attack_type},{proba_params[0]},{proba_params[1]},{proba_params[2]},{graph1_prob},{common_prob},{iter_number},{stats[0]},{stats[1]},{stats[2]},{TP},{FP},{TN},{FN},{time}\n")
+        f.close()
     return stats[0], stats[1], stats[2]
 
 def ROC_stats(prediction, groundtruth):
