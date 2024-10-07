@@ -80,10 +80,7 @@ elif expe_type == "DP":
             Gstar = deterministic_attack.get_reconstructed_graph()
 
             rev_spectral_attack = RevisitedSpectral(Gstar, A)
-            if proba_params[2] == 0:
-                rev_spectral_attack.run(alpha=proba_params[0], beta=proba_params[1])
-            else:
-                rev_spectral_attack.run(alpha=proba_params[0], beta=proba_params[1], gamma=proba_params[2])
+            rev_spectral_attack.run(alpha=proba_params[0], beta=proba_params[1], gamma=proba_params[2])
             
             end = time.time()
             Gstar = rev_spectral_attack.get_reconstructed_graph()
@@ -101,10 +98,9 @@ elif expe_type == "DPD":
             Gstar = deterministic_attack.get_reconstructed_graph()
 
             rev_spectral_attack = RevisitedSpectral(Gstar, A)
-            if proba_params[2] == 0:
-                rev_spectral_attack.run(alpha=proba_params[0], beta=proba_params[1])
-            else:
-                rev_spectral_attack.run(alpha=proba_params[0], beta=proba_params[1], gamma=proba_params[2])
+            rev_spectral_attack.run(alpha=proba_params[0], beta=proba_params[1])
+            
+            rev_spectral_attack.run(alpha=proba_params[0], beta=proba_params[1], gamma=proba_params[2])
             if optimize_sanity_check:
                 rev_spectral_attack.sanity_check_with_high_loss()
             else:
