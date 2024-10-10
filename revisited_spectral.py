@@ -79,22 +79,33 @@ class RevisitedSpectral:
 
         for i in range(self.A.shape[0]):
             for j in range(i, self.A.shape[1]):
-                if self.A[i, j] != A_prime[i, j] and A_prime[i, i] == self.A[i, i]:
-                    for k in range(self.A.shape[0]):
-                        if self.last_G.adj_matrix[i, k] == 2:
-                            self.reconstructed_graph.adj_matrix[j, k] = 2
-                            self.reconstructed_graph.adj_matrix[k, j] = 2
-
-                            modifs += 1
-                            slots_to_forget.add(j)
-                if self.A[i, j] != A_prime[i, j] and A_prime[j, j] == self.A[j, j]:
-                    for k in range(self.A.shape[0]):
-                        if self.last_G.adj_matrix[j, k] == 2:
-                            self.reconstructed_graph.adj_matrix[i, k] = 2
-                            self.reconstructed_graph.adj_matrix[k, i] = 2
-                            modifs += 1
-                            slots_to_forget.add(i)
-
+                if self.A[i, j] != A_prime[i, j]:
+                    if A_prime[i, i] == self.A[i, i]:
+                        for k in range(self.A.shape[0]):
+                            if self.last_G.adj_matrix[j, k] == 2:
+                                self.reconstructed_graph.adj_matrix[j, k] = 2
+                                self.reconstructed_graph.adj_matrix[k, j] = 2
+                                modifs += 1
+                                slots_to_forget.add(j)
+                    elif A_prime[j, j] == self.A[j, j]:
+                        for k in range(self.A.shape[0]):
+                            if self.last_G.adj_matrix[i, k] == 2:
+                                self.reconstructed_graph.adj_matrix[i, k] = 2
+                                self.reconstructed_graph.adj_matrix[k, i] = 2
+                                modifs += 1
+                                slots_to_forget.add(i)
+                    else:
+                        for k in range(self.A.shape[0]):
+                            if self.last_G.adj_matrix[i, k] == 2:
+                                self.reconstructed_graph.adj_matrix[i, k] = 2
+                                self.reconstructed_graph.adj_matrix[k, i] = 2
+                                modifs += 1
+                                slots_to_forget.add(i)
+                            if self.last_G.adj_matrix[j, k] == 2:
+                                self.reconstructed_graph.adj_matrix[j, k] = 2
+                                self.reconstructed_graph.adj_matrix[k, j] = 2
+                                modifs += 1
+                                slots_to_forget.add(j)
         print(f"Updated {modifs} edges in G*")
 
 
