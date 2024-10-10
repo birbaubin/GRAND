@@ -123,14 +123,12 @@ class RevisitedSpectral:
                             self.reconstructed_graph.adj_matrix[i, k] = 2
                             self.reconstructed_graph.adj_matrix[k, i] = 2
                             modifs += 1
-                            slots_to_forget.add((j, k))
-                if self.A[i, j] != A_prime[i, j]:
-                    for k in range(self.A.shape[0]):
+                            slots_to_forget.add(i)
                         if self.last_G.adj_matrix[j, k] == 2:
                             self.reconstructed_graph.adj_matrix[j, k] = 2
                             self.reconstructed_graph.adj_matrix[k, j] = 2
                             modifs += 1
-                            slots_to_forget.add((i, k))
+                            slots_to_forget.add(j)
         print(f"Updated {modifs} edges in G*")
 
 
