@@ -12,7 +12,16 @@ class RevisitedSpectral:
 
 
     
-    def run(self, alpha, beta, gamma=0.0, threshold=0.5):
+    def run(self, alpha=0.0, beta=0.0, gamma=0.0, threshold=0.5):
+
+        # if no alpha, beta and gamma are given, we set alpha to 1 and beta to the proportion of known slots in the matrix
+        if alpha + beta + gamma == 0:
+            alpha = 1
+            non_edges = np.argwhere(self.G.adj_matrix == 0)
+            edges = np.argwhere(self.G.adj_matrix == 1)
+            beta = (len(non_edges) + len(edges)) / self.A.shape[0] ** 2
+
+
 
         M_star = np.zeros_like(self.G.adj_matrix)
         U_A, S_A, V_A = np.linalg.svd(self.A, compute_uv=True)
