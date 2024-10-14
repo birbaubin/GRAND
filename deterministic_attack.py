@@ -8,11 +8,23 @@ class DeterministicAttack:
     Class to perform deterministic attacks on a graph
     """
 
-    def __init__(self, graph1, A):
+    def __init__(self, graph1, A, graph1_prop=0.0, dataset_name=None, log=False):
         self.reconstructed_graph = Graph(graph1.nodes, with_fixed_edges=False)
         self.reconstructed_graph.add_edges_from(graph1.edges())
         self.A = A
         self.modifications = 0
+        self.dataset_name = dataset_name
+        self.log = log
+        self.graph1_prop = graph1_prop
+
+        if self.log:
+            if self.dataset_name == None or self.graph1_prop == None:
+                print("Error : dataset_name and/or size of known graph is not defined")
+                exit()
+            else:
+                print(f"Deterministic attacks on {self.dataset_name}")
+                self.log_file = open(f"logs/deterministics/{self.dataset_name}.csv", "a")
+
 
     def matching_attacks(self):
         modifs = 0
@@ -25,11 +37,15 @@ class DeterministicAttack:
                     for node in reconstructed_graph.neighbors(i):
                         if reconstructed_graph.get_edge_label((j, node)) == 2:
                             reconstructed_graph.remove_edge((j, node))
-                            modifs += 1
+
                     for node in reconstructed_graph.neighbors(j):
                         if reconstructed_graph.get_edge_label((i, node)) == 2:
                             reconstructed_graph.remove_edge((i, node))
-                            modifs += 1
+
+        modifs = len(np.where(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)[0])
+
+        if self.log:
+            self.log_file.write(f"matching,{self.graph1_prop},{modifs}\n")
 
         self.reconstructed_graph = reconstructed_graph
         self.modifications+=modifs
@@ -49,20 +65,23 @@ class DeterministicAttack:
                     for k in unknowed_edges_i:
                         reconstructed_graph.add_edge((i, k))
                         reconstructed_graph.add_edge((j, k))
-                        modifs += 1
 
                 if len(reconstructed_graph.neighbors(j)) == A[i, j] - len(unknowed_edges_j):
                     for k in unknowed_edges_j:
                         reconstructed_graph.add_edge((j, k))
                         reconstructed_graph.add_edge((i, k))
-                        modifs += 1
+                        
+        modifs = len(np.where(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)[0])
+
+        if self.log:
+            self.log_file.write(f"completion,{self.graph1_prop},{modifs}\n")
 
         self.reconstructed_graph = reconstructed_graph
         self.modifications += modifs
 
 
     def degree_attack(self, degrees=[1, 2]):
-        number_modifs = 0
+        modifs = 0
         reconstructed_graph = self.reconstructed_graph.copy()
         A = self.A
 
@@ -89,16 +108,19 @@ class DeterministicAttack:
                 for j in candidate:
                     if reconstructed_graph.adj_matrix[i, j] == 2:
                         reconstructed_graph.add_edge((i, j))
-                        number_modifs += 1
 
+
+        modifs = len(np.where(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)[0])
+        if self.log:
+            self.log_file.write(f"degree,{self.graph1_prop},{modifs}\n")
         
         self.reconstructed_graph =  reconstructed_graph
-        self.modifications += number_modifs
+        self.modifications += modifs
 
 
 
     def triangle_attack(self):
-        number_modifs = 0
+        modifs = 0
         reconstructed_graph = self.reconstructed_graph.copy()
         A = self.A
 
@@ -116,14 +138,16 @@ class DeterministicAttack:
                 for w in candidates:
                     if reconstructed_graph.adj_matrix[u, w] == 2:
                         reconstructed_graph.add_edge((u, w))
-                        number_modifs += 1
                     if reconstructed_graph.adj_matrix[v, w] == 2:
                         reconstructed_graph.add_edge((v, w))
-                        number_modifs += 1
+
+        modifs = len(np.where(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)[0])
+        if self.log:
+            self.log_file.write(f"triangle,{self.graph1_prop},{modifs}\n")
 
 
     def rectangle_attack(self, degrees=[1, 2, 3, 4, 5]):
-        additions = 0
+        modifs = 0
         reconstructed_graph = self.reconstructed_graph.copy()
         A = self.A
 
@@ -139,14 +163,18 @@ class DeterministicAttack:
                         for neighbor in neighbors:
                             if reconstructed_graph.adj_matrix[neighbor, graph_node] == 2:
                                 reconstructed_graph.add_edge((neighbor, graph_node))
-                                additions += 1
-    
+
+
+        modifs = len(np.where(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)[0])
+
+        if self.log:
+            self.log_file.write(f"rectangle,{self.graph1_prop},{modifs}\n")
 
         self.reconstructed_graph = reconstructed_graph
-        self.modifications += additions
+        self.modifications += modifs
 
 
-    def run(self, run_matching=True, run_completion=True, run_degree=True, run_rectangle=True, run_triangle=True, log=False):
+    def run(self, run_matching=True, run_completion=True, run_degree=True, run_rectangle=True, run_triangle=True):
         
         iteration_deterministic = 0
         iteration_probabilistic = 0
