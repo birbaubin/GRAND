@@ -17,7 +17,8 @@ argparser.add_argument("--type", type=str, default="D", choices=["D", "P", "DP",
 argparser.add_argument("--n_experiments", type=int, default=5)
 argparser.add_argument("--graph1_props", type=float, nargs='+', default=[0.0])
 argparser.add_argument("--proba_params", type=float, nargs='+', default=[0.3, 0.3, 0.3])
-argparser.add_argument("--sanity_check_optim", type=bool, default=True)
+argparser.add_argument('--sanity_check_optim', action=argparse.BooleanOptionalAction)
+argparser.add_argument('--log_deterministic', action=argparse.BooleanOptionalAction)
 
 
 args = argparser.parse_args()
@@ -27,6 +28,7 @@ optimize_sanity_check = args.sanity_check_optim
 graph1_props = args.graph1_props
 expe_type = args.type
 proba_params = args.proba_params
+log_deterministic = args.log_deterministic
 common_props = [0]
 
 # Load dataset
@@ -37,10 +39,10 @@ else:
 
 
 # create dataset.csv file if it does not exist
-with open(f"logs/{dataset_name}.csv", "a") as f:
-    if os.stat(f"logs/{dataset_name}.csv").st_size == 0:
+with open(f"logs/benchmark/{dataset_name}.csv", "a") as f:
+    if os.stat(f"logs/benchmark/{dataset_name}.csv").st_size == 0:
         f.write(
-        "expe,attack_type,alpha,beta,gamma,graph1_prop,common_prop,iter_number," +
+        "expe,attack_type,optim,alpha,beta,gamma,graph1_prop,common_prop,iter_number," +
         "impossible_edges,reconstructed_edges,unknown_edges,TP,FP,TN,FN,time\n")
     f.close()
 
@@ -54,7 +56,7 @@ if expe_type == "P":
     end = time.time()
     Gstar = attack.get_reconstructed_graph()
     log_graph_stats(0, 1, 0, expe_type, 
-            [None, None, None], optimize_sanity_check, 0, end-start, f"logs/{dataset_name}.csv", Gstar, G)
+            [None, None, None], optimize_sanity_check, 0, end-start, f"logs/benchmark/{dataset_name}.csv", Gstar, G)
 
 elif expe_type == "D":
     print("\n\n########################## Deterministic ##########################\n\n")
@@ -62,16 +64,16 @@ elif expe_type == "D":
         for graph1_prop, common_prop in product(graph1_props, common_props):
             G1, G2 = G.split_dataset(common_prop=common_prop, graph1_prop=graph1_prop)
             start = time.time()
-            deterministic_attack = DeterministicAttack(G1, A)
+            deterministic_attack = DeterministicAttack(G1, A, graph1_prop=graph1_prop, dataset_name=dataset_name, log=log_deterministic)
             deterministic_attack.run()
             end = time.time()
             Gstar = deterministic_attack.get_reconstructed_graph()
             log_graph_stats(graph1_prop, common_prop, expe, expe_type, 
-            [None, None, None], optimize_sanity_check, 0, end-start, f"logs/{dataset_name}.csv", Gstar, G)
+            [None, None, None], optimize_sanity_check, 0, end-start, f"logs/benchmark/{dataset_name}.csv", Gstar, G)
 
             if graph1_prop == 0:
                 #save adj matrix
-                np.savetxt(f"logs/{dataset_name}_deter_adj_matrix.csv", Gstar.adj_matrix, delimiter=",", fmt="%d")
+                np.savetxt(f"logs/deterministic_results/{dataset_name}_deter_adj_matrix.csv", Gstar.adj_matrix, delimiter=",", fmt="%d")
 
 elif expe_type == "DP":
     print("\n\n########################## Deterministic - Probabilistic ##########################\n\n")
@@ -79,8 +81,8 @@ elif expe_type == "DP":
         for graph1_prop, common_prop in product(graph1_props, common_props):
             
             start = time.time()
-            if graph1_prop == 0 and os.path.exists(f"logs/{dataset_name}_deter_adj_matrix.csv"):
-                Gstar = Graph.from_adj_matrix(np.loadtxt(f"logs/{dataset_name}_deter_adj_matrix.csv", delimiter=","))
+            if graph1_prop == 0 and os.path.exists(f"logs/deterministic_results/{dataset_name}_deter_adj_matrix.csv"):
+                Gstar = Graph.from_adj_matrix(np.loadtxt(f"logs/deterministic_results/{dataset_name}_deter_adj_matrix.csv", delimiter=","))
             else:
                 G1, G2 = G.split_dataset(common_prop=common_prop, graph1_prop=graph1_prop)
                 deterministic_attack = DeterministicAttack(G1, A)
@@ -93,7 +95,7 @@ elif expe_type == "DP":
             end = time.time()
             Gstar = rev_spectral_attack.get_reconstructed_graph()
             log_graph_stats(graph1_prop, common_prop, expe, expe_type, 
-            proba_params, optimize_sanity_check, 0, end-start, f"logs/{dataset_name}.csv", Gstar, G)
+            proba_params, optimize_sanity_check, 0, end-start, f"logs/benchmark/{dataset_name}.csv", Gstar, G)
 
 elif expe_type == "DPD":
     print("\n\n########################## Deterministic - Probabilistic - Deterministic #########################\n\n")
@@ -102,8 +104,8 @@ elif expe_type == "DPD":
         
             start = time.time()
 
-            if graph1_prop == 0 and os.path.exists(f"logs/{dataset_name}_deter_adj_matrix.csv"):
-                Gstar = Graph.from_adj_matrix(np.loadtxt(f"logs/{dataset_name}_deter_adj_matrix.csv", delimiter=","))
+            if graph1_prop == 0 and os.path.exists(f"logs/deterministic_results/{dataset_name}_deter_adj_matrix.csv"):
+                Gstar = Graph.from_adj_matrix(np.loadtxt(f"logs/deterministic_results/{dataset_name}_deter_adj_matrix.csv", delimiter=","))
             else:
                 G1, G2 = G.split_dataset(common_prop=common_prop, graph1_prop=graph1_prop)
                 deterministic_attack = DeterministicAttack(G1, A)
