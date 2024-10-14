@@ -151,17 +151,11 @@ class Graph(object):
         return set(self.neighbors(n1)).intersection(set(self.neighbors(n2)))
 
     def stats(self):
-        num_absent_edges = 0
-        for i in range(self.size):
-            for j in range(i+1, self.size):
-                if self.adj_matrix[i][j] == 0:
-                    num_absent_edges += 1
+        num_present = len(np.where(self.adj_matrix == 1)[0])
+        num_absent = len(np.where(self.adj_matrix == 0)[0])
+        num_unknown = len(np.where(self.adj_matrix == 2)[0])
 
-        num_absent_edges += len(self.nodes)
-        num_present_edges = int(len(np.where(self.adj_matrix == 1)[0]) / 2)
-        num_unknown_edges = int(len(np.where(self.adj_matrix == 2)[0]) / 2)
-
-        return num_absent_edges, num_present_edges, num_unknown_edges
+        return num_absent, num_present, num_unknown
 
     def copy(self):
         copy =  Graph(self.nodes)

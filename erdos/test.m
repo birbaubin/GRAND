@@ -8,8 +8,8 @@
 % [1]: Dora Erdos, Rainer Gemulla, Evimaria Terzi "Reconstructing Graphs from Neighborhood Data", 
 % IEEE International Conference on Data Mining, 2012, Brussels, Belgium, December 2012.
 %
-output_dir = 'results/flickr/'
-dataset_name = 'flickr.txt'
+output_dir = 'results/email/'
+dataset_name = 'email.txt'
 
 % create input data to the recSVD algorithm.
 M = load(dataset_name);

@@ -31,9 +31,9 @@ def edge_identification_accuracy(prediction, groundtruth):
 def display_graph_stats(graph):
     t = PrettyTable(['Stat', 'Value'])
     stats = graph.stats()
-    t.add_row(['Number of impossible edges', stats[0]])
-    t.add_row(['Number of reconstructed edges', stats[1]])
-    t.add_row(['Number of unknown edges', stats[2]])
+    t.add_row(['0s', stats[0]])
+    t.add_row(['1s', stats[1]])
+    t.add_row(['?s', stats[2]])
     print(t, "\n")
 
 
@@ -58,11 +58,11 @@ def display_reconstruction_metrics(prediction, groundtruth):
     t.add_row(['Edge identification accuracy', edge_accuracy])
     print(t, "\n")
 
-def log_graph_stats(graph1_prob, common_prob, expe, attack_type, proba_params, iter_number, time, file_name, prediction, groundtruth):
+def log_graph_stats(graph1_prob, common_prob, expe, attack_type, proba_params, optim, iter_number, time, file_name, prediction, groundtruth):
     stats = prediction.stats()
     TP, FP, TN, FN = ROC_stats(prediction, groundtruth)
     with open(file_name, "a+") as f:
-        f.write(f"{expe},{attack_type},{proba_params[0]},{proba_params[1]},{proba_params[2]},{graph1_prob},{common_prob},{iter_number},{stats[0]},{stats[1]},{stats[2]},{TP},{FP},{TN},{FN},{time}\n")
+        f.write(f"{expe},{attack_type},{optim},{proba_params[0]},{proba_params[1]},{proba_params[2]},{graph1_prob},{common_prob},{iter_number},{stats[0]},{stats[1]},{stats[2]},{TP},{FP},{TN},{FN},{time}\n")
         f.close()
     return stats[0], stats[1], stats[2]
 
@@ -73,24 +73,11 @@ def ROC_stats(prediction, groundtruth):
     TN = 0
     FN = 0
 
-    not_predicted_edges = [(i, j) for i in range(len(prediction.nodes)) 
-                           for j in range(i, len(prediction.nodes)) 
-                           if prediction.does_not_have_edge((i, j))]
+    TP = len(np.where(np.logical_and(prediction.adj_matrix == 1, groundtruth.adj_matrix == 1))[0])  
+    FP = len(np.where(np.logical_and(prediction.adj_matrix == 1, groundtruth.adj_matrix == 0))[0])
+    TN = len(np.where(np.logical_and(prediction.adj_matrix == 0, groundtruth.adj_matrix == 0))[0])
+    FN = len(np.where(np.logical_and(prediction.adj_matrix == 0, groundtruth.adj_matrix == 1))[0])
 
-    predicted_edges = set(prediction.edges())
-    groundtruth_edges = set(groundtruth.edges())
-
-    for edge in predicted_edges:
-        if edge in groundtruth_edges:
-            TP += 1
-        else:
-            FP += 1
-
-    for edge in not_predicted_edges:
-        if edge in groundtruth_edges:
-            FN += 1
-        else:
-            TN += 1
     return TP, FP, TN, FN
     
     def precision_recall(TP, FP, TN, FN):
