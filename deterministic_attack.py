@@ -1,6 +1,11 @@
 from helpers import *
 from Graph import Graph
 from itertools import product, combinations
+from tqdm import tqdm
+import numpy as np
+from prettytable import PrettyTable
+import time
+
 
 
 class DeterministicAttack:
@@ -8,7 +13,17 @@ class DeterministicAttack:
     Class to perform deterministic attacks on a graph
     """
 
-    def __init__(self, graph1, A, graph1_prop=0.0, dataset_name=None, log=False):
+    def __init__(self, graph1, A, graph1_prop=0.0, dataset_name=None, log=False, expe_number=None):
+        """
+        Constructor of the class
+        :param graph1: Graph object
+        :param A: Adjacency matrix of the graph
+        :param graph1_prop: Proportion of the graph1 in the dataset
+        :param dataset_name: Name of the dataset
+        :param log: Boolean to log the results
+        :param expe_number: Number of the experiment
+        """
+
         self.reconstructed_graph = Graph(graph1.nodes, with_fixed_edges=False)
         self.reconstructed_graph.add_edges_from(graph1.edges())
         self.A = A
@@ -16,13 +31,21 @@ class DeterministicAttack:
         self.dataset_name = dataset_name
         self.log = log
         self.graph1_prop = graph1_prop
+        self.expe_number = expe_number
 
         if self.log:
             if self.dataset_name == None or self.graph1_prop == None:
                 print("Error : dataset_name and/or size of known graph is not defined")
                 exit()
             else:
-                print(f"Deterministic attacks on {self.dataset_name}")
+                print("#### Deterministic attacks ####")
+                # t = PrettyTable(['Parameter', 'Value'])
+                # t.add_row(['Dataset name', self.dataset_name])
+                # t.add_row(['Known graph proportion', self.graph1_prop])
+                # t.add_row(['Experiment number', self.expe_number])
+                # t.add_row(['Log', self.log])
+                # print(t)
+
                 self.log_file = open(f"logs/deterministics/{self.dataset_name}.csv", "a")
 
 
@@ -45,7 +68,7 @@ class DeterministicAttack:
         modifs = len(np.where(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)[0])
 
         if self.log:
-            self.log_file.write(f"matching,{self.graph1_prop},{modifs}\n")
+            self.log_file.write(f"matching,{self.expe_number},{self.graph1_prop},{modifs}\n")
 
         self.reconstructed_graph = reconstructed_graph
         self.modifications+=modifs
@@ -74,7 +97,7 @@ class DeterministicAttack:
         modifs = len(np.where(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)[0])
 
         if self.log:
-            self.log_file.write(f"completion,{self.graph1_prop},{modifs}\n")
+            self.log_file.write(f"completion,{self.expe_number},{self.graph1_prop},{modifs}\n")
 
         self.reconstructed_graph = reconstructed_graph
         self.modifications += modifs
@@ -112,7 +135,7 @@ class DeterministicAttack:
 
         modifs = len(np.where(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)[0])
         if self.log:
-            self.log_file.write(f"degree,{self.graph1_prop},{modifs}\n")
+            self.log_file.write(f"degree,{self.expe_number},{self.graph1_prop},{modifs}\n")
         
         self.reconstructed_graph =  reconstructed_graph
         self.modifications += modifs
@@ -143,7 +166,7 @@ class DeterministicAttack:
 
         modifs = len(np.where(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)[0])
         if self.log:
-            self.log_file.write(f"triangle,{self.graph1_prop},{modifs}\n")
+            self.log_file.write(f"triangle,{self.expe_number},{self.graph1_prop},{modifs}\n")
 
 
     def rectangle_attack(self, degrees=[1, 2, 3, 4, 5]):
@@ -168,7 +191,7 @@ class DeterministicAttack:
         modifs = len(np.where(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)[0])
 
         if self.log:
-            self.log_file.write(f"rectangle,{self.graph1_prop},{modifs}\n")
+            self.log_file.write(f"rectangle,{self.expe_number},{self.graph1_prop},{modifs}\n")
 
         self.reconstructed_graph = reconstructed_graph
         self.modifications += modifs

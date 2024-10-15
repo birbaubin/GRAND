@@ -38,7 +38,7 @@ else:
     G = Graph.block_from_txt(f"datasets/{dataset_name}.txt")
 
 
-# create dataset.csv file if it does not exist
+# create benchmark log file if it does not exist
 with open(f"logs/benchmark/{dataset_name}.csv", "a") as f:
     if os.stat(f"logs/benchmark/{dataset_name}.csv").st_size == 0:
         f.write(
@@ -64,7 +64,7 @@ elif expe_type == "D":
         for graph1_prop, common_prop in product(graph1_props, common_props):
             G1, G2 = G.split_dataset(common_prop=common_prop, graph1_prop=graph1_prop)
             start = time.time()
-            deterministic_attack = DeterministicAttack(G1, A, graph1_prop=graph1_prop, dataset_name=dataset_name, log=log_deterministic)
+            deterministic_attack = DeterministicAttack(G1, A, graph1_prop=graph1_prop, dataset_name=dataset_name, log=log_deterministic, expe_number=expe)
             deterministic_attack.run()
             end = time.time()
             Gstar = deterministic_attack.get_reconstructed_graph()
@@ -127,7 +127,7 @@ elif expe_type == "DPD":
             Gstar.fix_edges()
             end = time.time()
             log_graph_stats(graph1_prop, common_prop, expe, expe_type, 
-            proba_params, optimize_sanity_check,0, end-start, f"logs/{dataset_name}.csv", Gstar, G)
+            proba_params, optimize_sanity_check,0, end-start, f"logs/benchmark/{dataset_name}.csv", Gstar, G)
 else:
     print("Unknown experiment type")
     exit(1)
