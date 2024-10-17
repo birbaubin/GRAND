@@ -49,8 +49,9 @@ class Graph(object):
         else:
             common_neighbors = np.zeros((self.size, self.size))
             for i in range(self.size):
-                for j in range(i+1, self.size):
+                for j in range(i, self.size):
                     common_neighbors[i][j] = len(set(self.neighbors(i)).intersection(set(self.neighbors(j))))
+                    common_neighbors[j][i] = common_neighbors[i][j]
             return common_neighbors
 
 

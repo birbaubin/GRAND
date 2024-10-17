@@ -74,6 +74,7 @@ class DeterministicAttack:
         self.modifications+=modifs
 
 
+
     def completion_attacks(self):
         modifs = 0
         reconstructed_graph = self.reconstructed_graph.copy()
