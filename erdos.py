@@ -12,7 +12,7 @@ class SpectralAttack:
     def run(self):
         M_star = np.zeros_like(self.A)
         U_A, S_A, V_A = np.linalg.svd(self.A, compute_uv=True)
-        for i in tqdm(range(S_A.shape[0])):
+        for i in tqdm(range(min(self.A.shape)), desc="Spectral attack"):
 
             S_Gi_plus = np.sqrt(S_A[i])
             S_Gi_minus =  - np.sqrt(S_A[i])
@@ -29,10 +29,14 @@ class SpectralAttack:
             distance_plus = np.linalg.norm(M_star_plus - binary_M_star_plus, ord='fro')
             distance_minus = np.linalg.norm(M_star_minus - binary_M_star_minus, ord='fro')        
 
+            # print(distance_plus, distance_minus)
+            
             if distance_plus < distance_minus:
                 M_star = M_star_plus
             else:
                 M_star = M_star_minus
+
+            # print("Iteration ", i, M_star[:5, :5])
 
         M_star = np.where(M_star > self.threshold, 1, 0)
         self.G = Graph.from_adj_matrix(M_star)

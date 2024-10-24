@@ -32,11 +32,12 @@ log_deterministic = args.log_deterministic
 common_props = [0]
 
 # Load dataset
-if dataset_name != "block":
+if dataset_name not in ["block", "cora_erdos"]:
     G = Graph.from_txt(f"datasets/{dataset_name}.txt")
 else:
     G = Graph.block_from_txt(f"datasets/{dataset_name}.txt")
 
+print(f"Dataset: {dataset_name} loaded successfully")
 
 # create benchmark log file if it does not exist
 with open(f"logs/benchmark/{dataset_name}.csv", "a") as f:
@@ -49,7 +50,7 @@ with open(f"logs/benchmark/{dataset_name}.csv", "a") as f:
 A = np.dot(G.adj_matrix, G.adj_matrix)
 
 if expe_type == "P":
-    print("######################### Spectral attack (Erdos et al.) ########################")
+    print(" --- Spectral attack (Erdos et al.) --- s")
     start = time.time()
     attack = SpectralAttack(A, 0.5)
     attack.run()
@@ -59,7 +60,7 @@ if expe_type == "P":
             [None, None, None], optimize_sanity_check, 0, end-start, f"logs/benchmark/{dataset_name}.csv", Gstar, G)
 
 elif expe_type == "D":
-    print("\n\n########################## Deterministic ##########################\n\n")
+    print("\n\n --- Deterministic --- \n\n")
     for expe in range(number_of_experiments):
         for graph1_prop, common_prop in product(graph1_props, common_props):
             G1, G2 = G.split_dataset(common_prop=common_prop, graph1_prop=graph1_prop)
@@ -76,7 +77,7 @@ elif expe_type == "D":
                 np.savetxt(f"logs/deterministic_results/{dataset_name}_deter_adj_matrix.csv", Gstar.adj_matrix, delimiter=",", fmt="%d")
 
 elif expe_type == "DP":
-    print("\n\n########################## Deterministic - Probabilistic ##########################\n\n")
+    print("\n\n --- Deterministic - Probabilistic --- \n\n")
     for expe in range(number_of_experiments):
         for graph1_prop, common_prop in product(graph1_props, common_props):
             
@@ -98,7 +99,7 @@ elif expe_type == "DP":
             proba_params, optimize_sanity_check, 0, end-start, f"logs/benchmark/{dataset_name}.csv", Gstar, G)
 
 elif expe_type == "DPD":
-    print("\n\n########################## Deterministic - Probabilistic - Deterministic #########################\n\n")
+    print("\n\n --- Deterministic - Probabilistic - Deterministic --- \n\n")
     for expe in range(number_of_experiments):
         for graph1_prop, common_prop in product(graph1_props, common_props):
         

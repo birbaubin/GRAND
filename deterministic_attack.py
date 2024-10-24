@@ -5,6 +5,7 @@ from tqdm import tqdm
 import numpy as np
 from prettytable import PrettyTable
 import time
+from joblib import Parallel, delayed
 
 
 
@@ -49,23 +50,26 @@ class DeterministicAttack:
                 self.log_file = open(f"logs/deterministics/{self.dataset_name}.csv", "a")
 
 
+    
     def matching_attacks(self):
         modifs = 0
         reconstructed_graph = self.reconstructed_graph.copy()
         A = self.A
 
         for i in tqdm(range(len(reconstructed_graph.nodes)), desc="Matching attacks"):
+            neighbors_i = reconstructed_graph.neighbors(i)
             for j in range(i, len(reconstructed_graph.nodes)):
-                if A[i, j] == len(reconstructed_graph.common_neighbors((i, j))):
-                    for node in reconstructed_graph.neighbors(i):
+                neighbors_j = reconstructed_graph.neighbors(j)
+                common_neighbors = np.intersect1d(neighbors_i, neighbors_j) 
+                if A[i, j] == len(common_neighbors):
+                    for node in neighbors_i.copy():
                         if reconstructed_graph.get_edge_label((j, node)) == 2:
                             reconstructed_graph.remove_edge((j, node))
-
-                    for node in reconstructed_graph.neighbors(j):
+                    for node in neighbors_j.copy():
                         if reconstructed_graph.get_edge_label((i, node)) == 2:
                             reconstructed_graph.remove_edge((i, node))
 
-        modifs = len(np.where(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)[0])
+        modifs = np.sum(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)
 
         if self.log:
             self.log_file.write(f"matching,{self.expe_number},{self.graph1_prop},{modifs}\n")
@@ -81,21 +85,23 @@ class DeterministicAttack:
         A = self.A
 
         for i in tqdm(range(len(reconstructed_graph.nodes)), desc="Completion attacks"):
+            neighbors_i = reconstructed_graph.neighbors(i)
             for j in range(i, len(reconstructed_graph.nodes)):
+                neighbors_j = reconstructed_graph.neighbors(j)
                 unknowed_edges_i = np.where(reconstructed_graph.adj_matrix[i] == 2)[0]
                 unknowed_edges_j = np.where(reconstructed_graph.adj_matrix[j] == 2)[0]
 
-                if len(reconstructed_graph.neighbors(i)) == A[i, j] - len(unknowed_edges_i):
+                if len(neighbors_i) == A[i, j] - len(unknowed_edges_i):
                     for k in unknowed_edges_i:
                         reconstructed_graph.add_edge((i, k))
                         reconstructed_graph.add_edge((j, k))
 
-                if len(reconstructed_graph.neighbors(j)) == A[i, j] - len(unknowed_edges_j):
+                if len(neighbors_j) == A[i, j] - len(unknowed_edges_j):
                     for k in unknowed_edges_j:
                         reconstructed_graph.add_edge((j, k))
                         reconstructed_graph.add_edge((i, k))
                         
-        modifs = len(np.where(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)[0])
+        modifs = np.sum(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)
 
         if self.log:
             self.log_file.write(f"completion,{self.expe_number},{self.graph1_prop},{modifs}\n")

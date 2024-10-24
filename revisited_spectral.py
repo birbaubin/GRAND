@@ -14,20 +14,16 @@ class RevisitedSpectral:
     
     def run(self, alpha=0.0, beta=0.0, gamma=0.0, threshold=0.5):
 
-        # if no alpha, beta and gamma are given, we set alpha to 1 and beta to the proportion of known slots in the graph
+        Gstar_edges = np.argwhere(self.G.adj_matrix == 1)
+        Gstar_non_edges = np.argwhere(self.G.adj_matrix == 0)
+
         if alpha + beta + gamma == 0:
-            non_edges = np.argwhere(self.G.adj_matrix == 0)
-            edges = np.argwhere(self.G.adj_matrix == 1)
-            beta = (len(non_edges) + len(edges)) / self.A.shape[0] ** 2
+            beta = (len(Gstar_non_edges) + len(Gstar_edges)) / (self.A.shape[0] ** 2)
             alpha = 1 - beta
-
-
 
         M_star = np.zeros_like(self.G.adj_matrix)
         U_A, S_A, V_A = np.linalg.svd(self.A, compute_uv=True)
 
-        Gstar_edges = np.argwhere(self.G.adj_matrix == 1)
-        number_of_edges = np.sum(np.diag(self.A))
         n = self.A.shape[0]
 
         for i in tqdm(range(S_A.shape[0]), desc="Revisited spectral attack"):
@@ -40,9 +36,6 @@ class RevisitedSpectral:
 
             binary_M_star_plus = np.where(M_star_plus >= threshold, 1, 0)
             binary_M_star_minus = np.where(M_star_minus >= threshold, 1, 0)
-
-            Gstar_edges = np.argwhere(self.G.adj_matrix == 1)
-            Gstar_non_edges = np.argwhere(self.G.adj_matrix == 0)
 
             distance_plus_M_G = np.linalg.norm(M_star_plus[Gstar_edges[:, 0], Gstar_edges[:, 1]] - self.G.adj_matrix[Gstar_edges[:, 0], Gstar_edges[:, 1]])
             distance_minus_M_G = np.linalg.norm(M_star_minus[Gstar_edges[:, 0], Gstar_edges[:, 1]] - self.G.adj_matrix[Gstar_edges[:, 0], Gstar_edges[:, 1]])
@@ -89,7 +82,6 @@ class RevisitedSpectral:
             alpha = 1 - beta
 
 
-
         M_star = np.zeros_like(self.G.adj_matrix)
         U_A, S_A, V_A = np.linalg.svd(self.A, compute_uv=True)
 
@@ -114,17 +106,17 @@ class RevisitedSpectral:
             distance_plus_M_G = np.linalg.norm(M_star_plus[Gstar_edges[:, 0], Gstar_edges[:, 1]] - self.G.adj_matrix[Gstar_edges[:, 0], Gstar_edges[:, 1]])
             distance_minus_M_G = np.linalg.norm(M_star_minus[Gstar_edges[:, 0], Gstar_edges[:, 1]] - self.G.adj_matrix[Gstar_edges[:, 0], Gstar_edges[:, 1]])
 
-            # distance_plus_M_G += np.linalg.norm(M_star_plus[Gstar_non_edges[:, 0], Gstar_non_edges[:, 1]])
-            # distance_minus_M_G += np.linalg.norm(M_star_minus[Gstar_non_edges[:, 0], Gstar_non_edges[:, 1]])
+            distance_plus_M_G += np.linalg.norm(M_star_plus[Gstar_non_edges[:, 0], Gstar_non_edges[:, 1]])
+            distance_minus_M_G += np.linalg.norm(M_star_minus[Gstar_non_edges[:, 0], Gstar_non_edges[:, 1]])
 
-            distance_plus_M_binary = np.linalg.norm(M_star_plus - binary_M_star_plus, ord='fro')
-            distance_minus_M_binary = np.linalg.norm(M_star_minus - binary_M_star_minus, ord='fro')
+            distance_plus_M_binary = np.linalg.norm(M_star_plus[Gstar_edges[:, 0], Gstar_edges[:, 1]] - binary_M_star_plus[Gstar_edges[:, 0], Gstar_edges[:, 1]])
+            distance_minus_M_binary = np.linalg.norm(M_star_minus[Gstar_edges[:, 0], Gstar_edges[:, 1]] - binary_M_star_minus[Gstar_edges[:, 0], Gstar_edges[:, 1]])
 
-            distance_squares_plus = np.linalg.norm(np.dot(binary_M_star_plus, binary_M_star_plus.T) - self.A, ord='fro') if gamma != 0 else 0 
-            distance_squares_minus = np.linalg.norm(np.dot(binary_M_star_minus, binary_M_star_minus.T) - self.A, ord='fro') if gamma != 0 else 0
+            distance_plus_M_binary += np.linalg.norm(M_star_plus[Gstar_non_edges[:, 0], Gstar_non_edges[:, 1]] - binary_M_star_plus[Gstar_non_edges[:, 0], Gstar_non_edges[:, 1]])
+            distance_minus_M_binary += np.linalg.norm(M_star_minus[Gstar_non_edges[:, 0], Gstar_non_edges[:, 1]] - binary_M_star_minus[Gstar_non_edges[:, 0], Gstar_non_edges[:, 1]])
 
-            distance_plus = beta  * distance_plus_M_G + alpha * distance_plus_M_binary + gamma /n * distance_squares_plus 
-            distance_minus = beta * distance_minus_M_G + alpha * distance_minus_M_binary + gamma /n * distance_squares_minus
+            distance_plus = beta  * distance_plus_M_G + alpha * distance_plus_M_binary  
+            distance_minus = beta * distance_minus_M_G + alpha * distance_minus_M_binary
 
 
             if distance_plus < distance_minus:
@@ -146,8 +138,6 @@ class RevisitedSpectral:
         self.reconstructed_graph = Graph.from_adj_matrix(M_star)
 
 
-
-        
     def sanity_check(self):
         modifs = 0
         slots_to_forget = set()
@@ -185,9 +175,6 @@ class RevisitedSpectral:
                                 slots_to_forget.add(j)
         print(f"Updated {modifs} edges in G*")
 
-    
-
-
 
     def sanity_check_with_high_loss(self):
         modifs = 0
@@ -211,6 +198,43 @@ class RevisitedSpectral:
                             slots_to_forget.add(j)
         print(f"Updated {modifs} edges in G*")
 
+
+    
+    def sanity_check_ultimate(self):
+        modifs = 0
+        slots_to_forget = set()
+        A_prime = np.dot(self.reconstructed_graph.adj_matrix, self.reconstructed_graph.adj_matrix.T)
+
+        less_slots = np.argwhere(self.A > A_prime)
+        more_slots = np.argwhere(self.A < A_prime)
+
+        for i, j in more_slots:
+            neighbors = self.reconstructed_graph.common_neighbors((i, j))
+            for n in neighbors:
+                if self.last_G.adj_matrix[i, n] == 2:
+                    self.reconstructed_graph.adj_matrix[i, n] = 2
+                    self.reconstructed_graph.adj_matrix[n, i] = 2
+                    modifs += 1
+                if self.last_G.adj_matrix[j, n] == 2:
+                    self.reconstructed_graph.adj_matrix[j, n] = 2
+                    self.reconstructed_graph.adj_matrix[n, j] = 2
+                    modifs += 1
+
+        for i, j in less_slots:
+            neighbors = self.reconstructed_graph.common_neighbors((i, j))
+            non_common_neighbors = set(self.reconstructed_graph.nodes) - neighbors
+            for n in non_common_neighbors:
+                if self.last_G.adj_matrix[i, n] == 2:
+                    self.reconstructed_graph.adj_matrix[i, n] = 2
+                    self.reconstructed_graph.adj_matrix[n, i] = 2
+                    modifs += 1
+                if self.last_G.adj_matrix[j, n] == 2:
+                    self.reconstructed_graph.adj_matrix[j, n] = 2
+                    self.reconstructed_graph.adj_matrix[n, j] = 2
+                    modifs += 1
+
+        print(f"Updated {modifs} edges in G*")
+    
 
 
     def get_reconstructed_graph(self):
