@@ -14,7 +14,7 @@ class DeterministicAttack:
     Class to perform deterministic attacks on a graph
     """
 
-    def __init__(self, graph1, A, graph1_prop=0.0, dataset_name=None, log=False, expe_number=None):
+    def __init__(self, Ga, A, graph1_prop=0.0, dataset_name=None, log=False, expe_number=None):
         """
         Constructor of the class
         :param graph1: Graph object
@@ -25,8 +25,7 @@ class DeterministicAttack:
         :param expe_number: Number of the experiment
         """
 
-        self.reconstructed_graph = Graph(graph1.nodes, with_fixed_edges=False)
-        self.reconstructed_graph.add_edges_from(graph1.edges())
+        self.Gstar = Ga.copy()
         self.A = A
         self.modifications = 0
         self.dataset_name = dataset_name
@@ -53,7 +52,7 @@ class DeterministicAttack:
     
     def matching_attacks(self):
         modifs = 0
-        reconstructed_graph = self.reconstructed_graph.copy()
+        reconstructed_graph = self.Gstar.copy()
         A = self.A
 
         for i in tqdm(range(len(reconstructed_graph.nodes)), desc="Matching attacks"):
@@ -69,19 +68,19 @@ class DeterministicAttack:
                         if reconstructed_graph.get_edge_label((i, node)) == 2:
                             reconstructed_graph.remove_edge((i, node))
 
-        modifs = np.sum(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)
+        modifs = np.sum(reconstructed_graph.adj_matrix != self.Gstar.adj_matrix)
 
         if self.log:
             self.log_file.write(f"matching,{self.expe_number},{self.graph1_prop},{modifs}\n")
 
-        self.reconstructed_graph = reconstructed_graph
+        self.Gstar = reconstructed_graph
         self.modifications+=modifs
 
 
 
     def completion_attacks(self):
         modifs = 0
-        reconstructed_graph = self.reconstructed_graph.copy()
+        reconstructed_graph = self.Gstar.copy()
         A = self.A
 
         for i in tqdm(range(len(reconstructed_graph.nodes)), desc="Completion attacks"):
@@ -101,18 +100,18 @@ class DeterministicAttack:
                         reconstructed_graph.add_edge((j, k))
                         reconstructed_graph.add_edge((i, k))
                         
-        modifs = np.sum(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)
+        modifs = np.sum(reconstructed_graph.adj_matrix != self.Gstar.adj_matrix)
 
         if self.log:
             self.log_file.write(f"completion,{self.expe_number},{self.graph1_prop},{modifs}\n")
 
-        self.reconstructed_graph = reconstructed_graph
+        self.Gstar = reconstructed_graph
         self.modifications += modifs
 
 
     def degree_attack(self, degrees=[1, 2]):
         modifs = 0
-        reconstructed_graph = self.reconstructed_graph.copy()
+        reconstructed_graph = self.Gstar.copy()
         A = self.A
 
         for i in tqdm(range(A.shape[0]), desc="Degree attack"):
@@ -140,18 +139,18 @@ class DeterministicAttack:
                         reconstructed_graph.add_edge((i, j))
 
 
-        modifs = len(np.where(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)[0])
+        modifs = len(np.where(reconstructed_graph.adj_matrix != self.Gstar.adj_matrix)[0])
         if self.log:
             self.log_file.write(f"degree,{self.expe_number},{self.graph1_prop},{modifs}\n")
         
-        self.reconstructed_graph =  reconstructed_graph
+        self.Gstar =  reconstructed_graph
         self.modifications += modifs
 
 
 
     def triangle_attack(self):
         modifs = 0
-        reconstructed_graph = self.reconstructed_graph.copy()
+        reconstructed_graph = self.Gstar.copy()
         A = self.A
 
         edges = reconstructed_graph.edges()
@@ -171,14 +170,14 @@ class DeterministicAttack:
                     if reconstructed_graph.adj_matrix[v, w] == 2:
                         reconstructed_graph.add_edge((v, w))
 
-        modifs = len(np.where(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)[0])
+        modifs = len(np.where(reconstructed_graph.adj_matrix != self.Gstar.adj_matrix)[0])
         if self.log:
             self.log_file.write(f"triangle,{self.expe_number},{self.graph1_prop},{modifs}\n")
 
 
     def rectangle_attack(self, degrees=[1, 2, 3, 4, 5]):
         modifs = 0
-        reconstructed_graph = self.reconstructed_graph.copy()
+        reconstructed_graph = self.Gstar.copy()
         A = self.A
 
         for k in tqdm(degrees, desc="Rectangle attack:"):
@@ -195,12 +194,12 @@ class DeterministicAttack:
                                 reconstructed_graph.add_edge((neighbor, graph_node))
 
 
-        modifs = len(np.where(reconstructed_graph.adj_matrix != self.reconstructed_graph.adj_matrix)[0])
+        modifs = len(np.where(reconstructed_graph.adj_matrix != self.Gstar.adj_matrix)[0])
 
         if self.log:
             self.log_file.write(f"rectangle,{self.expe_number},{self.graph1_prop},{modifs}\n")
 
-        self.reconstructed_graph = reconstructed_graph
+        self.Gstar = reconstructed_graph
         self.modifications += modifs
 
 
@@ -228,7 +227,7 @@ class DeterministicAttack:
             
             end = time.time()
 
-            display_graph_stats(self.reconstructed_graph)
+            display_graph_stats(self.Gstar)
 
             if self.modifications == old_modfications:
                 continue_deterministic = False
@@ -237,5 +236,5 @@ class DeterministicAttack:
 
 
 
-    def get_reconstructed_graph(self):
-        return self.reconstructed_graph
+    def get_Gstar(self):
+        return self.Gstar

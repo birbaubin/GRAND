@@ -41,7 +41,7 @@ class SpectralAttack:
         M_star = np.where(M_star > self.threshold, 1, 0)
         self.G = Graph.from_adj_matrix(M_star)
 
-    def get_reconstructed_graph(self):
+    def get_Gstar(self):
         return self.G
 
 

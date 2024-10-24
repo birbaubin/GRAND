@@ -55,7 +55,7 @@ if expe_type == "P":
     attack = SpectralAttack(A, 0.5)
     attack.run()
     end = time.time()
-    Gstar = attack.get_reconstructed_graph()
+    Gstar = attack.get_Gstar()
     log_graph_stats(0, 1, 0, expe_type, 
             [None, None, None], optimize_sanity_check, 0, end-start, f"logs/benchmark/{dataset_name}.csv", Gstar, G)
 
@@ -68,7 +68,7 @@ elif expe_type == "D":
             deterministic_attack = DeterministicAttack(G1, A, graph1_prop=graph1_prop, dataset_name=dataset_name, log=log_deterministic, expe_number=expe)
             deterministic_attack.run()
             end = time.time()
-            Gstar = deterministic_attack.get_reconstructed_graph()
+            Gstar = deterministic_attack.get_Gstar()
             log_graph_stats(graph1_prop, common_prop, expe, expe_type, 
             [None, None, None], optimize_sanity_check, 0, end-start, f"logs/benchmark/{dataset_name}.csv", Gstar, G)
 
@@ -88,13 +88,13 @@ elif expe_type == "DP":
                 G1, G2 = G.split_dataset(common_prop=common_prop, graph1_prop=graph1_prop)
                 deterministic_attack = DeterministicAttack(G1, A)
                 deterministic_attack.run()
-                Gstar = deterministic_attack.get_reconstructed_graph()
+                Gstar = deterministic_attack.get_Gstar()
 
             rev_spectral_attack = RevisitedSpectral(Gstar, A)
             rev_spectral_attack.run(alpha=proba_params[0], beta=proba_params[1], gamma=proba_params[2])
             
             end = time.time()
-            Gstar = rev_spectral_attack.get_reconstructed_graph()
+            Gstar = rev_spectral_attack.get_Gstar()
             log_graph_stats(graph1_prop, common_prop, expe, expe_type, 
             proba_params, optimize_sanity_check, 0, end-start, f"logs/benchmark/{dataset_name}.csv", Gstar, G)
 
@@ -111,7 +111,7 @@ elif expe_type == "DPD":
                 G1, G2 = G.split_dataset(common_prop=common_prop, graph1_prop=graph1_prop)
                 deterministic_attack = DeterministicAttack(G1, A)
                 deterministic_attack.run()
-                Gstar = deterministic_attack.get_reconstructed_graph()
+                Gstar = deterministic_attack.get_Gstar()
 
             rev_spectral_attack = RevisitedSpectral(Gstar, A)
             
@@ -120,11 +120,11 @@ elif expe_type == "DPD":
                 rev_spectral_attack.sanity_check_with_high_loss()
             else:
                 rev_spectral_attack.sanity_check()
-            Gstar = rev_spectral_attack.get_reconstructed_graph()
+            Gstar = rev_spectral_attack.get_Gstar()
             
             deterministic_attack = DeterministicAttack(Gstar, A)
             deterministic_attack.run()
-            Gstar = deterministic_attack.get_reconstructed_graph()
+            Gstar = deterministic_attack.get_Gstar()
             Gstar.fix_edges()
             end = time.time()
             log_graph_stats(graph1_prop, common_prop, expe, expe_type, 
