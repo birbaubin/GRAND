@@ -90,11 +90,13 @@ elif expe_type == "DP":
                 deterministic_attack.run()
                 Gstar = deterministic_attack.get_Gstar()
 
-            rev_spectral_attack = RevisitedSpectral(Gstar, A)
-            rev_spectral_attack.run(alpha=proba_params[0], beta=proba_params[1], gamma=proba_params[2])
+            unknowns = Gstar.stats()[2]
+            if unknowns != 0:
+                rev_spectral_attack = RevisitedSpectral(Gstar, A)
+                rev_spectral_attack.run(alpha=proba_params[0], beta=proba_params[1], gamma=proba_params[2])
+                Gstar = rev_spectral_attack.get_Gstar()
             
             end = time.time()
-            Gstar = rev_spectral_attack.get_Gstar()
             log_graph_stats(graph1_prop, common_prop, expe, expe_type, 
             proba_params, optimize_sanity_check, 0, end-start, f"logs/benchmark/{dataset_name}.csv", Gstar, G)
 
@@ -113,14 +115,15 @@ elif expe_type == "DPD":
                 deterministic_attack.run()
                 Gstar = deterministic_attack.get_Gstar()
 
-            rev_spectral_attack = RevisitedSpectral(Gstar, A)
-            
-            rev_spectral_attack.run(alpha=proba_params[0], beta=proba_params[1], gamma=proba_params[2])
-            if not optimize_sanity_check:
-                rev_spectral_attack.sanity_check_with_high_loss()
-            else:
-                rev_spectral_attack.sanity_check()
-            Gstar = rev_spectral_attack.get_Gstar()
+            unknowns = Gstar.stats()[2]
+            if unknowns != 0:
+                rev_spectral_attack = RevisitedSpectral(Gstar, A)
+                rev_spectral_attack.run(alpha=proba_params[0], beta=proba_params[1], gamma=proba_params[2])
+                if not optimize_sanity_check:
+                    rev_spectral_attack.sanity_check_with_high_loss()
+                else:
+                    rev_spectral_attack.sanity_check()
+                Gstar = rev_spectral_attack.get_Gstar()
             
             deterministic_attack = DeterministicAttack(Gstar, A)
             deterministic_attack.run()
