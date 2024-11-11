@@ -4,10 +4,12 @@ from tqdm import tqdm
 
 
 class SpectralAttack:
-    def __init__(self, A, threshold=0.5):
+    def __init__(self, Gstar, A, threshold=0.5):
         self.A = A
-        self.G = Graph(range(A.shape[0]))
+        self.G = Graph(A.shape[0])
         self.threshold = threshold
+        self.last_G = Gstar
+        chosen = None
 
     def run(self):
         M_star = np.zeros_like(self.A)
@@ -28,18 +30,27 @@ class SpectralAttack:
 
             distance_plus = np.linalg.norm(M_star_plus - binary_M_star_plus, ord='fro')
             distance_minus = np.linalg.norm(M_star_minus - binary_M_star_minus, ord='fro')        
-
-            # print(distance_plus, distance_minus)
             
             if distance_plus < distance_minus:
                 M_star = M_star_plus
+                chosen = S_Gi_plus
             else:
                 M_star = M_star_minus
+                chosen = S_Gi_minus
 
-            # print("Iteration ", i, M_star[:5, :5])
+            assert chosen < np.max(np.diag(self.A))
+
+    
 
         M_star = np.where(M_star > self.threshold, 1, 0)
         self.G = Graph.from_adj_matrix(M_star)
+
+        # Update the reconstructed graph with the known information
+        for i in range(self.last_G.adj_matrix.shape[0]):
+            for j in range(i, self.last_G.adj_matrix.shape[1]):
+                if self.last_G.adj_matrix[i, j] != 2:
+                    self.G.adj_matrix[i, j] = self.last_G.adj_matrix[i, j]
+                    self.G.adj_matrix[j, i] = self.last_G.adj_matrix[i, j]
 
     def get_Gstar(self):
         return self.G

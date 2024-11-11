@@ -113,13 +113,17 @@ class DeterministicAttack:
         modifs = 0
         reconstructed_graph = self.Gstar.copy()
         A = self.A
+        degree_sequence = np.diag(A)
+    
 
         for i in tqdm(range(A.shape[0]), desc="Degree attack"):
             if A[i, i] not in degrees:
                 continue
             degree = np.sum(A[i]) 
             candidate = None
-            possibilities = np.where(np.diag(A) <= degree - A[i, i] + 1)[0]
+            possibilities = np.where((2 <= degree_sequence) & (degree_sequence <= degree - A[i, i] + 1))[0]
+            # possibilities = np.intersect1d(possibilities, nodes_with_unique_degree)
+
             for comb in combinations(possibilities, A[i, i]):
                 sum_of_degrees = 0
 
@@ -145,7 +149,6 @@ class DeterministicAttack:
         
         self.Gstar =  reconstructed_graph
         self.modifications += modifs
-
 
 
     def triangle_attack(self):
@@ -191,6 +194,7 @@ class DeterministicAttack:
                     if A[node, graph_node] == k:
                         for neighbor in neighbors:
                             if reconstructed_graph.adj_matrix[neighbor, graph_node] == 2:
+                                # print(f"Adding edge between {neighbor} and {graph_node}")
                                 reconstructed_graph.add_edge((neighbor, graph_node))
 
 
@@ -202,15 +206,31 @@ class DeterministicAttack:
         self.Gstar = reconstructed_graph
         self.modifications += modifs
 
+    def degree_more(self):
+        modifs = 0
 
-    def run(self, run_matching=True, run_completion=True, run_degree=True, run_rectangle=True, run_triangle=True):
+        for node in tqdm(self.Gstar.nodes, desc="Degree more attack"):
+            sum_row_node = np.sum(self.A[node])
+            for candidate in self.Gstar.nodes:
+                degree_candidate = self.A[candidate, candidate]
+                if sum_row_node < degree_candidate and self.Gstar.get_edge_label((candidate, node)) == 2:
+                    self.Gstar.remove_edge((candidate, node))
+                    modifs+=2
+       
+
+
+    def run(self, run_matching=True, run_completion=True, run_degree=True, run_rectangle=True, run_triangle=True, run_degree2=True):
         
         iteration_deterministic = 0
         iteration_probabilistic = 0
         continue_deterministic = True
 
+        degrees = np.unique(np.diag(self.A))
+
         if run_degree:
-            self.degree_attack()
+            self.degree_attack(degrees=[1, 2])
+            self.degree_more()
+            # self.degree_prime()
 
         while continue_deterministic:
             old_modfications = self.modifications
@@ -221,19 +241,18 @@ class DeterministicAttack:
             if run_completion:
                 self.completion_attacks()
             if run_rectangle:
-                self.rectangle_attack(degrees=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+                self.rectangle_attack(degrees)
             if run_triangle:
                 self.triangle_attack()
             
             end = time.time()
 
-            display_graph_stats(self.Gstar)
+            # display_graph_stats(self.Gstar)
 
             if self.modifications == old_modfications:
                 continue_deterministic = False
             
             iteration_deterministic += 1
-
 
 
     def get_Gstar(self):

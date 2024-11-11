@@ -4,9 +4,9 @@ import pandas as pd
 
 class Graph(object):
 
-    def __init__(self, nodes, with_fixed_edges=False):
-        self.nodes = nodes
-        self.size = len(nodes)
+    def __init__(self, size, with_fixed_edges=False):
+        self.size = size
+        self.nodes = list(range(size))
         if with_fixed_edges:
             self.adj_matrix = np.zeros((self.size, self.size), dtype=int)
         else:
@@ -147,6 +147,9 @@ class Graph(object):
     def edges(self):
         return [(i, j) for i in range(self.size) for j in range(i, self.size) if self.adj_matrix[i][j] == 1]
 
+    def degree(self, node):
+        return len(self.neighbors(node))
+
     def common_neighbors(self, edge):
         n1, n2 = edge
         return set(self.neighbors(n1)).intersection(set(self.neighbors(n2)))
@@ -159,7 +162,7 @@ class Graph(object):
         return num_absent, num_present, num_unknown
 
     def copy(self):
-        copy =  Graph(self.nodes)
+        copy =  Graph(self.size)
         copy.adj_matrix = np.copy(self.adj_matrix)
         return copy
 
@@ -175,7 +178,7 @@ class Graph(object):
     @staticmethod
     def from_adj_matrix(adj_matrix, with_fixed_edges=False):
         nodes = list(range(len(adj_matrix)))
-        graph = Graph(nodes, with_fixed_edges=with_fixed_edges)
+        graph = Graph(len(nodes), with_fixed_edges=with_fixed_edges)
         graph.adj_matrix = adj_matrix
         return graph
 
@@ -189,7 +192,7 @@ class Graph(object):
     def from_txt(filepath):
         edges = pd.read_csv(filepath, sep='\t', header=None)
         nodes = list(range(0, max(edges[0].tolist() + edges[1].tolist() ) ))
-        graph = Graph(nodes, with_fixed_edges=True)
+        graph = Graph(len(nodes), with_fixed_edges=True)
         for i in range(len(edges)):
             graph.add_edge((edges[0][i]-1, edges[1][i]-1))
 
@@ -210,6 +213,30 @@ class Graph(object):
 
         graph.first_partition_size = max_partition_1
         return graph
+
+    @staticmethod
+    def random_graph(nodes, edge_prob=0.5):
+        graph = Graph(nodes)
+        for i in range(len(nodes)):
+            for j in range(i+1, len(nodes)):
+                if np.random.random() < edge_prob:
+                    graph.add_edge((i, j))
+        return graph
+
+    @staticmethod
+    def barabasi_albert_graph(size, m=1, m0=1):
+        graph = Graph(size, with_fixed_edges=True)
+        for i in range(m0, size):
+            probs = [graph.degree(j) for j in range(i)]
+            probs = [p / sum(probs) for p in probs] if sum(probs) > 0 else [1 / i for _ in range(i)]
+            targets = np.random.choice(range(i), size=m, p=probs, replace=False)
+            for target in targets:
+                graph.add_edge((i, target))
+
+        return graph
+
+
+
 
     def unknown_edges(self):
         return [(i, j) for i in range(self.size) for j in range(i+1, self.size) if self.adj_matrix[i][j] == 2]
@@ -242,12 +269,12 @@ class Graph(object):
                     
         return graph1, graph2
 
-    def fix_edges(self):
+    def fix_edges(self, value=0):
         for i in range(self.size):
             for j in range(i+1, self.size):
                 if self.adj_matrix[i][j] == 2:
-                    self.adj_matrix[i][j] = 0
-                    self.adj_matrix[j][i] = 0
+                    self.adj_matrix[i][j] = value
+                    self.adj_matrix[j][i] = value
 
 
     def global_clustering_coefficient(self):
@@ -272,7 +299,7 @@ class Graph(object):
     def to_txt(self, filepath):
         with open(filepath, 'w') as f:
             for (n1, n2) in self.edges():
-                f.write(f"{n1+1}\t{n2+1 - self.first_partition_size}\n")
+                f.write(f"{n1+1}\t{n2+1 - self.first_partition_size}\t1\n")
 
 
                     
