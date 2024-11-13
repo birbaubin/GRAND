@@ -122,7 +122,6 @@ class DeterministicAttack:
             degree = np.sum(A[i]) 
             candidate = None
             possibilities = np.where((2 <= degree_sequence) & (degree_sequence <= degree - A[i, i] + 1))[0]
-            # possibilities = np.intersect1d(possibilities, nodes_with_unique_degree)
 
             for comb in combinations(possibilities, A[i, i]):
                 sum_of_degrees = 0
@@ -206,6 +205,34 @@ class DeterministicAttack:
         self.Gstar = reconstructed_graph
         self.modifications += modifs
 
+
+    def rectange_attack_more(self):
+
+        reconstructed_graph = self.Gstar.copy()
+        candidates = [ node for node in self.Gstar.nodes if len(reconstructed_graph.neighbors(node)) == self.A[node, node]]
+
+        for node in tqdm(candidates, desc="Rectangle attack more"):
+            node_neighbors = reconstructed_graph.neighbors(node)
+            for graph_node in range(self.A.shape[0]):
+                graph_node_neighbors = reconstructed_graph.neighbors(graph_node)
+                number_missing_edges = self.A[graph_node, graph_node] - len(graph_node_neighbors)
+
+                common_neighbors = np.intersect1d(node_neighbors, graph_node_neighbors)
+                number_missing_common_neighbors = self.A[node, graph_node] - len(common_neighbors)
+
+                if number_missing_edges == number_missing_common_neighbors:
+                    for i in list(set(self.Gstar.nodes) - set(node_neighbors)):
+                        if reconstructed_graph.adj_matrix[i, graph_node] == 2:
+                            reconstructed_graph.remove_edge((i, graph_node))
+                        if reconstructed_graph.adj_matrix[i, graph_node] == 2:
+                            reconstructed_graph.remove_edge((i, graph_node))
+
+        modifs = len(np.where(reconstructed_graph.adj_matrix != self.Gstar.adj_matrix)[0])
+        self.Gstar = reconstructed_graph
+
+        print(f"Rectangle attack more: {modifs} modifications")
+
+
     def degree_more(self):
         modifs = 0
 
@@ -242,6 +269,7 @@ class DeterministicAttack:
                 self.completion_attacks()
             if run_rectangle:
                 self.rectangle_attack(degrees)
+                self.rectange_attack_more()
             if run_triangle:
                 self.triangle_attack()
             

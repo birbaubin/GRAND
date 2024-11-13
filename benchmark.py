@@ -114,12 +114,12 @@ for expe in range(number_of_experiments):
                 if unknowns != 0:
                     rev_spectral_attack = RevisitedSpectral(Gstar, A)
                     rev_spectral_attack.run(alpha=float(proba_params[0]), beta=float(proba_params[1]), gamma=float(proba_params[2]))
-                    if not bool(optimize_sanity_check):
+                    if not int(optimize_sanity_check):
                         print("-------> Running sanity check")
                         rev_spectral_attack.sanity_check_with_high_loss()
                     else:
-                        print("-------> Running sanity check with early stop")
-                        rev_spectral_attack.sanity_check_with_early_stop(0.025)
+                        print("-------> Running sanity ultimate")
+                        rev_spectral_attack.sanity_check_ultimate2()
 
                     Gstar = rev_spectral_attack.get_Gstar()
                     deterministic_attack = DeterministicAttack(Gstar, A)
