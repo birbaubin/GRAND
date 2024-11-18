@@ -40,17 +40,14 @@ class SpectralAttack:
 
             assert chosen < np.max(np.diag(self.A))
 
-    
-
+            
         M_star = np.where(M_star > self.threshold, 1, 0)
         self.G = Graph.from_adj_matrix(M_star)
 
-        # Update the reconstructed graph with the known information
-        for i in range(self.last_G.adj_matrix.shape[0]):
-            for j in range(i, self.last_G.adj_matrix.shape[1]):
-                if self.last_G.adj_matrix[i, j] != 2:
-                    self.G.adj_matrix[i, j] = self.last_G.adj_matrix[i, j]
-                    self.G.adj_matrix[j, i] = self.last_G.adj_matrix[i, j]
+        for i in self.G.nodes:
+            for j in self.G.nodes:
+                if i not in self.last_G.unknown_list[j] and j not in self.last_G.unknown_list[i]:
+                    self.G.write_value((i, j), self.last_G.get_edge_label((i, j)))
 
     def get_Gstar(self):
         return self.G

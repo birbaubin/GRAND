@@ -7,13 +7,13 @@ from prettytable import PrettyTable
 
 
 def frobenius_distance(prediction, groundtruth):
-    return np.linalg.norm(prediction.adj_matrix - groundtruth.adj_matrix, 'fro')
+    return np.linalg.norm(prediction.adjacency_matrix() - groundtruth.adjacency_matrix(), 'fro')
 
 def reconstruction_accuracy(prediction, groundtruth):
-    return np.sum(prediction.adj_matrix == groundtruth.adj_matrix) / groundtruth.adj_matrix.size
+    return np.sum(prediction.adjacency_matrix() == groundtruth.adjacency_matrix()) / groundtruth.adjacency_matrix().size
 
 def rae(prediction, groundtruth):
-    return (np.linalg.norm(prediction.adj_matrix - groundtruth.adj_matrix, "fro" ) ** 2 )/ (np.linalg.norm(groundtruth.adj_matrix, "fro") ** 2)
+    return (np.linalg.norm(prediction.adjacency_matrix() - groundtruth.adjacency_matrix(), "fro" ) ** 2 )/ (np.linalg.norm(groundtruth.adjacency_matrix(), "fro") ** 2)
 
 def edge_identification_accuracy(prediction, groundtruth):
     predicted_edges = set(prediction.edges())
@@ -73,10 +73,13 @@ def ROC_stats(prediction, groundtruth):
     TN = 0
     FN = 0
 
-    TP = len(np.where(np.logical_and(prediction.adj_matrix == 1, groundtruth.adj_matrix == 1))[0])  
-    FP = len(np.where(np.logical_and(prediction.adj_matrix == 1, groundtruth.adj_matrix == 0))[0])
-    TN = len(np.where(np.logical_and(prediction.adj_matrix == 0, groundtruth.adj_matrix == 0))[0])
-    FN = len(np.where(np.logical_and(prediction.adj_matrix == 0, groundtruth.adj_matrix == 1))[0])
+    prediction_adj = prediction.adjacency_matrix()
+    groundtruth_adj = groundtruth.adjacency_matrix()
+
+    TP = np.sum(np.logical_and(prediction_adj == 1, groundtruth_adj == 1))
+    FP = np.sum(np.logical_and(prediction_adj == 1, groundtruth_adj == 0))
+    TN = np.sum(np.logical_and(prediction_adj == 0, groundtruth_adj == 0))  
+    FN = np.sum(np.logical_and(prediction_adj == 0, groundtruth_adj == 1))
 
     return TP, FP, TN, FN
     
@@ -151,51 +154,6 @@ def sort_edges(rec_graph, method=None):
 
     return sorted_edges
 
-
-def benchmark_reconstruct_union_graph(rec_graph, step, common_neighbors_count, graph1, groundtruth, sorting=None):
-
-    roc_stats = []
-    graph = rec_graph.copy()
-    nodes_count = len(graph.nodes)
-    inserted_edge_count = 0
-    stats = graph.stats()
-    max_num_links = 0
-    for i in range(nodes_count):
-        max_num_links += (common_neighbors_count[i][i] - len(graph.neighbors(i))) /2
-
-    print("Max number of links to insert : ", max_num_links)
-
-    sorted_edges = sort_edges(rec_graph, sorting)
-    print("Number of sorted edges : ", len(sorted_edges))
-
-    with tqdm(total=max_num_links) as pbar:
-        for i in range(len(sorted_edges)):
-            if inserted_edge_count == max_num_links:
-                break
-            n1, n2 = sorted_edges[i]
-            if not graph.has_edge((n1, n2)):
-                if len(graph.neighbors(n1)) < common_neighbors_count[n1][n1] and len(graph.neighbors(n2)) < common_neighbors_count[n2][n2]:
-                    graph.add_edge((n1, n2))
-                    # print("Inserted edge ", (n1, n2))
-                    inserted_edge_count += 1
-                    pbar.update(1)
-
-            if inserted_edge_count % step == 0:
-                roc_stats.append(ROC_stats(graph, groundtruth))
-
-
-    return graph, roc_stats
-
-
-
-def random_graph(n, p):
-    adj_matrix = np.random.choice([0, 1], size=(n, n), p=[1-p, p])
-    graph = Graph(list(range(n)), with_fixed_edges=True)
-    for i in range(n):
-        for j in range(i+1, n):
-            if adj_matrix[i][j] == 1:
-                graph.add_edge((i, j))
-    return graph
 
 
 def petersen_style_graphs(n):

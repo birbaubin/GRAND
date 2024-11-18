@@ -8,24 +8,28 @@ class RevisitedSpectral:
     def __init__(self, reconstructed_graph, A):
         self.last_G = reconstructed_graph
         self.G = reconstructed_graph
+        self.G_adj_matrix = self.G.adjacency_matrix()
         self.A = A
 
 
-    
+
     def run(self, alpha=0.0, beta=0.0, gamma=0.0, threshold=0.5):
 
-        Gstar_edges = np.argwhere(self.G.adj_matrix == 1)
-        Gstar_non_edges = np.argwhere(self.G.adj_matrix == 0)
-        Gstar_unknowns = np.argwhere(self.G.adj_matrix == 2)
+        Gstar_edges = np.argwhere(self.G_adj_matrix == 1)
+        Gstar_non_edges = np.argwhere(self.G_adj_matrix == 0)
+        Gstar_unknowns = np.argwhere(self.G_adj_matrix == 2)
 
         if alpha + beta + gamma == 0:
             beta = (len(Gstar_non_edges) + len(Gstar_edges)) / (self.A.shape[0] ** 2)
             alpha = 1 - beta
 
-        M_star = np.zeros_like(self.G.adj_matrix)
+        M_star = np.zeros((self.A.shape[0], self.A.shape[1]))
         U_A, S_A, V_A = np.linalg.svd(self.A, compute_uv=True)
 
         n = self.A.shape[0]
+
+        distances = []
+        distances_not_chosen = []
 
         for i in tqdm(range(S_A.shape[0]), desc=f"Revisited spectral attack : alpha={alpha}, beta={beta}, gamma={gamma}"):
 
@@ -39,29 +43,41 @@ class RevisitedSpectral:
             binary_M_star_plus = np.where(M_star_plus >= threshold, 1, 0)
             binary_M_star_minus = np.where(M_star_minus >= threshold, 1, 0)
 
-            distance_plus_M_G = np.linalg.norm(M_star_plus[Gstar_edges[:, 0], Gstar_edges[:, 1]] - self.G.adj_matrix[Gstar_edges[:, 0], Gstar_edges[:, 1]])
-            distance_minus_M_G = np.linalg.norm(M_star_minus[Gstar_edges[:, 0], Gstar_edges[:, 1]] - self.G.adj_matrix[Gstar_edges[:, 0], Gstar_edges[:, 1]])
+            distance_plus_M_G = np.linalg.norm(M_star_plus[Gstar_edges[:, 0], Gstar_edges[:, 1]] - self.G_adj_matrix[Gstar_edges[:, 0], Gstar_edges[:, 1]])
+            distance_minus_M_G = np.linalg.norm(M_star_minus[Gstar_edges[:, 0], Gstar_edges[:, 1]] - self.G_adj_matrix[Gstar_edges[:, 0], Gstar_edges[:, 1]])
 
             distance_plus_M_G += np.linalg.norm(M_star_plus[Gstar_non_edges[:, 0], Gstar_non_edges[:, 1]])
             distance_minus_M_G += np.linalg.norm(M_star_minus[Gstar_non_edges[:, 0], Gstar_non_edges[:, 1]])
 
-            distance_plus_M_binary = np.linalg.norm(M_star_plus - binary_M_star_plus, ord='fro')
-            distance_minus_M_binary = np.linalg.norm(M_star_minus - binary_M_star_minus, ord='fro')
+            # distance_plus_M_binary = np.linalg.norm(M_star_plus - binary_M_star_plus, ord='fro')
+            # distance_minus_M_binary = np.linalg.norm(M_star_minus - binary_M_star_minus, ord='fro')
 
-            distance_squares_plus = np.linalg.norm(np.dot(binary_M_star_plus, binary_M_star_plus.T) - self.A, ord='fro') if gamma != 0 else 0 
+            distance_plus_M_binary = np.linalg.norm(M_star_plus[Gstar_unknowns[:, 0], Gstar_unknowns[:, 1]] - binary_M_star_plus[Gstar_unknowns[:, 0], Gstar_unknowns[:, 1]])
+            distance_minus_M_binary = np.linalg.norm(M_star_minus[Gstar_unknowns[:, 0], Gstar_unknowns[:, 1]] - binary_M_star_minus[Gstar_unknowns[:, 0], Gstar_unknowns[:, 1]])
+
+            distance_squares_plus = np.linalg.norm(np.dot(binary_M_star_plus, binary_M_star_plus.T) - self.A, ord='fro') if gamma != 0 else 0
             distance_squares_minus = np.linalg.norm(np.dot(binary_M_star_minus, binary_M_star_minus.T) - self.A, ord='fro') if gamma != 0 else 0
 
-            distance_plus = beta  * distance_plus_M_G + alpha * distance_plus_M_binary + gamma /n * distance_squares_plus 
+            distance_plus = beta  * distance_plus_M_G + alpha * distance_plus_M_binary + gamma /n * distance_squares_plus
             distance_minus = beta * distance_minus_M_G + alpha * distance_minus_M_binary + gamma /n * distance_squares_minus
 
 
-            if distance_plus < distance_minus:
+            if distance_plus <= distance_minus:
                 M_star = M_star_plus
-            elif distance_minus < distance_plus:  
+                distances.append(distance_plus)
+                distances_not_chosen.append(distance_minus)
+            else :
                 M_star = M_star_minus
-            else:
-                M_star = M_star_plus
+                distances.append(distance_minus)
+                distances_not_chosen.append(distance_plus)
 
+
+        # print(" ---- > Distances chosen during the attack: ", distances)
+        # print(" ---- > Distances not chosen during the attack: ", distances_not_chosen)
+        # print("----> Difference", np.array(distances) - np.array(distances_not_chosen))
+
+        # print the difference between the distances two by two
+        delt = []
 
         M_star = np.where(M_star >= threshold, 1, 0)
 
@@ -90,6 +106,7 @@ class RevisitedSpectral:
         M_star = np.zeros_like(self.G.adj_matrix)
         U_A, S_A, V_A = np.linalg.svd(self.A, compute_uv=True)
 
+        distances = []
 
         for i in tqdm(range(S_A.shape[0]), desc=f"Revisited spectral attack : alpha={alpha}, beta={beta}, gamma={gamma}"):
 
@@ -111,19 +128,19 @@ class RevisitedSpectral:
             distance_plus_M_binary = np.linalg.norm(M_star_plus[Gstar_unknowns[:, 0], Gstar_unknowns[:, 1]] - binary_M_star_plus[Gstar_unknowns[:, 0], Gstar_unknowns[:, 1]])
             distance_minus_M_binary = np.linalg.norm(M_star_minus[Gstar_unknowns[:, 0], Gstar_unknowns[:, 1]] - binary_M_star_minus[Gstar_unknowns[:, 0], Gstar_unknowns[:, 1]])
 
-            distance_squares_plus = np.linalg.norm(np.dot(binary_M_star_plus, binary_M_star_plus.T) - self.A, ord='fro') if gamma != 0 else 0 
+            distance_squares_plus = np.linalg.norm(np.dot(binary_M_star_plus, binary_M_star_plus.T) - self.A, ord='fro') if gamma != 0 else 0
             distance_squares_minus = np.linalg.norm(np.dot(binary_M_star_minus, binary_M_star_minus.T) - self.A, ord='fro') if gamma != 0 else 0
 
-            distance_plus = beta  * distance_plus_M_G + alpha * distance_plus_M_binary + gamma /n * distance_squares_plus 
+            distance_plus = beta  * distance_plus_M_G + alpha * distance_plus_M_binary + gamma /n * distance_squares_plus
             distance_minus = beta * distance_minus_M_G + alpha * distance_minus_M_binary + gamma /n * distance_squares_minus
 
 
-            if distance_plus < distance_minus:
+            if distance_plus <= distance_minus:
                 M_star = M_star_plus
-            elif distance_minus < distance_plus:  
-                M_star = M_star_minus
+                distances.append(distance_plus)
             else:
-                M_star = M_star_plus
+                M_star = M_star_minus
+                distances.append(distance_minus)
 
 
         M_star = np.where(M_star >= threshold, 1, 0)
@@ -138,6 +155,7 @@ class RevisitedSpectral:
 
         self.Gstar = Graph.from_adj_matrix(M_star)
 
+
     def sanity_check(self):
         modifs = 0
         slots_to_forget = set()
@@ -146,15 +164,7 @@ class RevisitedSpectral:
 
         for i in range(self.A.shape[0]):
             for j in range(i, self.A.shape[1]):
-                
-                # ensure symmetry
-                # if self.Gstar.adj_matrix[i, j] != self.Gstar.adj_matrix[j, i] and (self.Gstar.adj_matrix[i, j] == 1 or self.Gstar.adj_matrix[j, i] == 1):
-                #     self.Gstar.adj_matrix[i, j] = 1
-                #     self.Gstar.adj_matrix[j, i] = 1
-                #     modifs += 1
-              
 
-                # remove some false positives
                 if self.A[i, j] != A_prime[i, j]:
                     if A_prime[i, i] == self.A[i, i]:
                         for k in range(self.A.shape[0]):
@@ -183,7 +193,7 @@ class RevisitedSpectral:
                                 modifs += 1
                                 slots_to_forget.add(j)
 
-    
+
     def optmized_sanity_check(self):
         modifs = 0
         A_prime = np.dot(self.Gstar.adj_matrix, self.Gstar.adj_matrix.T)
@@ -224,32 +234,24 @@ class RevisitedSpectral:
                                 self.Gstar.adj_matrix[k, j] = 2
                                 modifs += 1
 
-                   
+
 
 
     def sanity_check_with_high_loss(self):
         modifs = 0
-        slots_to_forget = set()
-        A_prime = np.dot(self.Gstar.adj_matrix, self.Gstar.adj_matrix.T)
+        adj_matrix = self.Gstar.adjacency_matrix()
+        A_prime = np.dot(adj_matrix, adj_matrix.T)
 
+        differences = np.argwhere(self.A != A_prime)
 
-        for i in range(self.A.shape[0]):
-            for j in range(i, self.A.shape[1]):
-                if self.Gstar.adj_matrix[i, j] != self.Gstar.adj_matrix[j, i] and (self.Gstar.adj_matrix[i, j] == 1 or self.Gstar.adj_matrix[j, i] == 1):
-                    self.Gstar.adj_matrix[i, j] = 1
-                    self.Gstar.adj_matrix[j, i] = 1
-                if self.A[i, j] != A_prime[i, j]:
-                    for k in range(self.A.shape[0]):
-                        if self.last_G.adj_matrix[i, k] == 2:
-                            self.Gstar.adj_matrix[i, k] = 2
-                            self.Gstar.adj_matrix[k, i] = 2
-                            modifs += 1
-                            slots_to_forget.add(i)
-                        if self.last_G.adj_matrix[j, k] == 2:
-                            self.Gstar.adj_matrix[j, k] = 2
-                            self.Gstar.adj_matrix[k, j] = 2
-                            modifs += 1
-                            slots_to_forget.add(j)
+        for i, j in differences:
+            for k in range(self.A.shape[0]):
+                if self.last_G.does_not_know_edge((i, k)):
+                    self.Gstar.write_value((i, k), 2)
+                    modifs += 1
+                if self.last_G.does_not_know_edge((j, k)):
+                    self.Gstar.write_value((j, k), 2)
+                    modifs += 1
 
 
     def sanity_check_with_early_stop(self, threshold=0.05):
@@ -285,61 +287,64 @@ class RevisitedSpectral:
         return False
 
 
-    
+
     def sanity_check_ultimate(self):
         modifs = 0
         addded_edges = set()
         A_prime = np.dot(self.Gstar.adj_matrix, self.Gstar.adj_matrix.T)
 
-        for i in range(self.A.shape[0]):
-            for j in range(i, self.A.shape[1]):
-                if self.Gstar.has_edge((i, j)) and self.last_G.does_not_know_edge((i, j)):
-                    addded_edges.add((i, j))
+        for node in range(self.A.shape[0]):
+            sum_row = np.sum(self.A[node])
+            sum_degrees_neighbors = np.sum([A_prime[k, k] for k in self.Gstar.neighbors(node)])
 
-        for edge in addded_edges:
-            n1, n2 = edge
-            sum_row_n1 = np.sum(self.A[edge[0]])
-            sum_row_n2 = np.sum(self.A[edge[1]])
+            if sum_row != sum_degrees_neighbors:
+                for n in self.Gstar.nodes:
+                    if self.last_G.adj_matrix[node, n] == 2:
+                        self.Gstar.adj_matrix[node, n] = 2
+                        self.Gstar.adj_matrix[n, node] = 2
 
-            sum_degrees_neighbors_n1 = np.sum([self.A[k, k] for k in self.Gstar.neighbors(edge[0])])
-            sum_degrees_neighbors_n2 = np.sum([self.A[k, k] for k in self.Gstar.neighbors(edge[1])])
-
-            if sum_row_n1 != sum_degrees_neighbors_n1 and sum_row_n2 != sum_degrees_neighbors_n2 and self.Gstar.adj_matrix[n1, n2] == 2:
-                self.Gstar.adj_matrix[n1, n2] = 2
-                self.Gstar.adj_matrix[n2, n1] = 2
-                print(f"({n1} {n2}) is a false positive")
-                modifs += 1
+                        modifs += 1
 
 
-    
+
+    # def sanity_check_ultimate2(self):
+    #     modifs = 0
+
+    #     A_prime = np.dot(self.Gstar.adj_matrix, self.Gstar.adj_matrix.T)
+
+    #     for i in range(self.A.shape[0]):
+    #         A_i = self.A[i] > 0
+    #         A_prime_i = A_prime[i] > 0
+    #         for j in range(i+1, self.A.shape[1]):
+    #             A_j = self.A[j] > 0
+    #             A_prime_j = A_prime[j] > 0
+    #             for k in range(self.A.shape[0]):
+    #                 if (A_i[k] != A_prime_i[k] or A_j[k] != A_prime_j[k]):
+    #                     self.Gstar.adj_matrix[i, j] = 2
+    #                     self.Gstar.adj_matrix[j, i] = 2
+
+    #     modifs = len(np.argwhere(self.Gstar.adj_matrix == 2))
+    #     print(f"modifs: {modifs}")
+
+
     def sanity_check_ultimate2(self):
         modifs = 0
-        # addded_edges = set()
-
-        # ensure symmetry
-        for i in range(self.A.shape[0]):
-            for j in range(i, self.A.shape[1]):
-                if self.Gstar.adj_matrix[i, j] != self.Gstar.adj_matrix[j, i] and (self.Gstar.adj_matrix[i, j] == 1 or self.Gstar.adj_matrix[j, i] == 1):
-                    self.Gstar.adj_matrix[i, j] = 1
-                    self.Gstar.adj_matrix[j, i] = 1
-                    modifs += 1
 
         A_prime = np.dot(self.Gstar.adj_matrix, self.Gstar.adj_matrix.T)
 
         for i in range(self.A.shape[0]):
-            for j in range(i+1, self.A.shape[1]):
-                A_i = self.A[i] > 0
-                A_prime_i = A_prime[i] > 0
-                A_j = self.A[j] > 0
-                A_prime_j = A_prime[j] > 0
-                for k in range(self.A.shape[0]):
-                    if (A_i[k] != A_prime_i[k] and A_j[k] != A_prime_j[k]):
+            sum_row = np.sum(self.A[i])
+            sum_row_prime = np.sum(A_prime[i])
+            if sum_row != sum_row_prime:
+                for j in range(self.A.shape[0]):
+                    if self.last_G.adj_matrix[i, j] == 2:
                         self.Gstar.adj_matrix[i, j] = 2
                         self.Gstar.adj_matrix[j, i] = 2
+                        modifs += 1
 
         modifs = len(np.argwhere(self.Gstar.adj_matrix == 2))
         print(f"modifs: {modifs}")
-    
+
 
 
     def get_Gstar(self):

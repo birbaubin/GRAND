@@ -49,7 +49,8 @@ optimize_sanity_check = 0
 # Load dataset
 if not dataset_name.startswith("barabasi") and not dataset_name.startswith("random"):
     G = Graph.from_txt(f"datasets/{dataset_name}.txt")
-    A = np.dot(G.adj_matrix, G.adj_matrix)
+    adj = G.adjacency_matrix()
+    A = np.dot(adj, adj)
 
 
 print(f"Dataset: {dataset_name} loaded successfully")
@@ -67,12 +68,14 @@ for expe in range(number_of_experiments):
         if dataset_name.startswith("barabasi"):
             print("Generating barabasi graph... ")
             G = generate_barabasi_graph_from_str(dataset_name)
-            A = np.dot(G.adj_matrix, G.adj_matrix)
+            adj = G.adjacency_matrix()
+            A = np.dot(adj, adj)
 
         elif dataset_name.startswith("random"):
             print("Generating random graph... ")
             G = generate_random_graph_from_str(dataset_name)
-            A = np.dot(G.adj_matrix, G.adj_matrix)
+            adj = G.adjacency_matrix()
+            A = np.dot(adj, adj)
 
         G1, G2 = G.split_dataset(common_prop=common_prop, graph1_prop=graph1_prop)
 
@@ -84,7 +87,7 @@ for expe in range(number_of_experiments):
                 Gstar = deterministic_attack.get_Gstar()
 
                 if graph1_prop == 0 and not dataset_name.startswith("barabasi") and not dataset_name.startswith("random"):
-                    np.savetxt(f"logs/deterministic_results/{dataset_name}_deter_adj_matrix.csv", Gstar.adj_matrix, delimiter=",", fmt="%d")
+                    np.savetxt(f"logs/deterministic_results/{dataset_name}_deter_adj_matrix.csv", Gstar.adjacency_matrix(), delimiter=",", fmt="%d")
             
             elif expe_type == "H":
                 attack = SpectralAttack(G1, A, 0.5)
@@ -110,6 +113,8 @@ for expe in range(number_of_experiments):
                 deterministic_attack.run()
                 Gstar = deterministic_attack.get_Gstar()
                 unknowns = Gstar.stats()[2]
+
+                print("Unknowns", unknowns)
 
                 if unknowns != 0:
                     rev_spectral_attack = RevisitedSpectral(Gstar, A)

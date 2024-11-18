@@ -6,23 +6,60 @@ class Graph(object):
 
     def __init__(self, size, with_fixed_edges=False):
         self.size = size
-        self.nodes = list(range(size))
+        self.nodes = set(range(size))
+
+        self.adj_list = [set() for _ in range(size)]
+        self.non_adj_list = [set() for _ in range(size)]
+        self.unknown_list = [set() for _ in range(size)]
+
         if with_fixed_edges:
-            self.adj_matrix = np.zeros((self.size, self.size), dtype=int)
+            for i in range(size):
+                for j in range(i, size):
+                    self.write_value((i, j), 0)
+          
         else:
-            self.adj_matrix = np.full((self.size, self.size), 2, dtype=int)
-            for i in range(self.size):
-                self.adj_matrix[i][i] = 0
-        self.first_partition_size = 0
+            for i in range(size):
+                for j in range(i+1, size):
+                    self.write_value((i, j), 2)
+                self.write_value((i, i), 0)
+            
+
+    def write_value(self, edge, value):
+        n1, n2 = edge
+    
+        if value == 1:
+            self.adj_list[n1].add(n2)
+            self.adj_list[n2].add(n1)
+            self.non_adj_list[n1].discard(n2)
+            self.non_adj_list[n2].discard(n1)
+            self.unknown_list[n1].discard(n2)
+            self.unknown_list[n2].discard(n1)
+
+        elif value == 0:
+            self.adj_list[n1].discard(n2)
+            self.adj_list[n2].discard(n1)
+            self.non_adj_list[n1].add(n2)
+            self.non_adj_list[n2].add(n1)
+            self.unknown_list[n1].discard(n2)
+            self.unknown_list[n2].discard(n1)
+            
+        elif value == 2:
+            self.adj_list[n1].discard(n2)
+            self.adj_list[n2].discard(n1)
+            self.non_adj_list[n1].discard(n2)
+            self.non_adj_list[n2].discard(n1)
+            self.unknown_list[n1].add(n2)
+            self.unknown_list[n2].add(n1)
+
+
 
     def add_edge(self, edge):
         n1, n2 = edge
-        self.adj_matrix[n1][n2] = 1
-        self.adj_matrix[n2][n1] = 1
+        self.write_value(edge, 1)
 
     def get_edge_label(self, edge):
         n1, n2 = edge
-        return self.adj_matrix[n1][n2]
+        return 0 if n2 in self.non_adj_list[n1] else 2 if n2 in self.unknown_list[n1] else 1
 
     def __len__(self):
         return len(self.graph.edges())
@@ -30,141 +67,86 @@ class Graph(object):
     def add_edges_from(self, edges):
         for edge in edges:
             n1, n2 = edge
-            self.adj_matrix[n1][n2] = 1
-            self.adj_matrix[n2][n1] = 1
+            self.add_edge((n1, n2))
+
 
     def remove_edge(self, edge):
         n1, n2 = edge
-        self.adj_matrix[n1][n2] = 0
-        self.adj_matrix[n2][n1] = 0
+        self.write_value(edge, 0)
 
     def neighbors(self, n1):
-        return np.where(self.adj_matrix[n1] == 1)[0]
-
-
-    def common_neighbors_index(self, edge=None):
-        if edge:
-            n1, n2 = edge
-            return len(set(self.neighbors(n1)).intersection(set(self.neighbors(n2))))
-        else:
-            common_neighbors = np.zeros((self.size, self.size))
-            for i in range(self.size):
-                for j in range(i, self.size):
-                    common_neighbors[i][j] = len(set(self.neighbors(i)).intersection(set(self.neighbors(j))))
-                    common_neighbors[j][i] = common_neighbors[i][j]
-            return common_neighbors
-
-
-    def jaccard_index(self, edge=None):
-
-        if edge:
-            n1, n2 = edge
-            common_neighbors = self.common_neighbors_index(edge)
-            union_neighbors = len(set(self.neighbors(n1)).union(set(self.neighbors(n2))))
-            if union_neighbors == 0:
-                return 0
-            return common_neighbors / union_neighbors
-        else:
-            jaccard = np.zeros((self.size, self.size))
-            for i in range(self.size):
-                for j in range(i+1, self.size):
-                    common_neighbors = self.common_neighbors_index((i, j))
-                    union_neighbors = len(set(self.neighbors(i)).union(set(self.neighbors(j))))
-                    if union_neighbors == 0:
-                        jaccard[i][j] = 0
-                    else:
-                        jaccard[i][j] = common_neighbors / union_neighbors
-            return jaccard
-
-
-    def preferential_attachment_index(self, edge=None):
-        if edge:
-            n1, n2 = edge
-            return len(self.neighbors(n1)) * len(self.neighbors(n2))
-        else:
-            pref_attach = np.zeros((self.size, self.size))
-            for i in range(self.size):
-                for j in range(i+1, self.size):
-                    pref_attach[i][j] = len(self.neighbors(i)) * len(self.neighbors(j))
-            return pref_attach
-
-    def adamic_adar_index(self, edge=None):
-        if edge:
-            n1, n2 = edge
-            common_neighbors = set(self.neighbors(n1)).intersection(set(self.neighbors(n2)))
-            return sum([1 / math.log(len(self.neighbors(k))) for k in common_neighbors])
-        adamic_adar = np.zeros((self.size, self.size))
-        for i in range(self.size):
-            for j in range(i+1, self.size):
-                common_neighbors = set(self.neighbors(i)).intersection(set(self.neighbors(j)))
-                adamic_adar[i][j] = sum([1 / math.log(len(self.neighbors(k))) for k in common_neighbors])
-        return adamic_adar
-
-    def resource_allocation_index(self, edge=None):
-        if edge:
-            n1, n2 = edge
-            common_neighbors = set(self.neighbors(n1)).intersection(set(self.neighbors(n2)))
-            return sum([1 / len(self.neighbors(k)) for k in common_neighbors])
-
-        else:
-            resource_allocation = np.zeros((self.size, self.size))
-            for i in range(self.size):
-                for j in range(i+1, self.size):
-                    common_neighbors = set(self.neighbors(i)).intersection(set(self.neighbors(j)))
-                    resource_allocation[i][j] = sum([1 / len(self.neighbors(k)) for k in common_neighbors])
-            return resource_allocation
-
-    
-    def link_prediction_scores(self, method, edge=None):
-        if method == "jaccard":
-            return self.jaccard_index(edge=edge)
-        elif method == "preferential_attachment":
-            return self.preferential_attachment_index(edge=edge)
-        elif method == "adamic_adar":
-            return self.adamic_adar_index(edge=edge)
-        elif method == "resource_allocation":
-            return self.resource_allocation_index(edge=edge)
-        elif method == "common_neighbors":
-            return self.common_neighbors_index(edge=edge)
-
-        else:
-            print("Non supported link prediction method ", method)
-            return None
-
+        return self.adj_list[n1]
 
     def has_edge(self, edge):
         n1, n2 = edge
-        return self.adj_matrix[n1][n2] == 1
+        return n2 in self.adj_list[n1]
 
     def does_not_know_edge(self, edge):
         n1, n2 = edge
-        return self.adj_matrix[n1][n2] == 2
+        return n2 in self.unknown_list[n1]
 
     def does_not_have_edge(self, edge):
         n1, n2 = edge
-        return self.adj_matrix[n1][n2] == 0
+        return n2 in self.non_adj_list[n1]
 
     def edges(self):
-        return [(i, j) for i in range(self.size) for j in range(i, self.size) if self.adj_matrix[i][j] == 1]
+        return [[i, j] for i in range(self.size) for j in range(self.size) if i in self.adj_list[j]]
+
+    def non_edges(self):
+        return [[i, j] for i in range(self.size) for j in range(self.size) if i in self.non_adj_list[j]]
+
+    def unknown_edges(self):
+        return [[i, j] for i in range(self.size) for j in range(self.size) if i in self.unknown_list[j]]
 
     def degree(self, node):
         return len(self.neighbors(node))
 
     def common_neighbors(self, edge):
         n1, n2 = edge
-        return set(self.neighbors(n1)).intersection(set(self.neighbors(n2)))
+        return self.neighbors(n1).intersection(self.neighbors(n2))
+
+    def adjacency_matrix(self):
+        adj_matrix = np.zeros((self.size, self.size), dtype=int)
+        for i in range(self.size):
+            for j in range(self.size):
+                if i in self.adj_list[j]:
+                    adj_matrix[i][j] = 1
+                    adj_matrix[j][i] = 1
+                elif i in self.non_adj_list[j]:
+                    adj_matrix[i][j] = 0
+                    adj_matrix[j][i] = 0
+                else:
+                    adj_matrix[i][j] = 2
+                    adj_matrix[j][i] = 2
+
+        return adj_matrix
+
 
     def stats(self):
-        num_present = len(np.where(self.adj_matrix == 1)[0])
-        num_absent = len(np.where(self.adj_matrix == 0)[0])
-        num_unknown = len(np.where(self.adj_matrix == 2)[0])
+        num_absent = 0
+        num_present = 0
+        num_unknown = 0
+
+        for i in range(self.size):
+            for j in range(i+1, self.size):
+                if i in self.adj_list[j]:
+                    num_present += 2
+                elif i in self.non_adj_list[j]:
+                    num_absent += 2
+                else:
+                    num_unknown += 2
 
         return num_absent, num_present, num_unknown
 
     def copy(self):
         copy =  Graph(self.size)
-        copy.adj_matrix = np.copy(self.adj_matrix)
+
+        copy.adj_list = [self.adj_list[i].copy() for i in range(self.size)]
+        copy.non_adj_list = [self.non_adj_list[i].copy() for i in range(self.size)]
+        copy.unknown_list = [self.unknown_list[i].copy() for i in range(self.size)]
+
         return copy
+
 
     @staticmethod
     def from_nodes_and_edges(nodes, edges):
@@ -179,7 +161,10 @@ class Graph(object):
     def from_adj_matrix(adj_matrix, with_fixed_edges=False):
         nodes = list(range(len(adj_matrix)))
         graph = Graph(len(nodes), with_fixed_edges=with_fixed_edges)
-        graph.adj_matrix = adj_matrix
+        for i in range(len(nodes)):
+            for j in range(i+1, len(nodes)):
+                graph.write_value((i, j), adj_matrix[i][j])
+
         return graph
 
     @staticmethod
@@ -234,12 +219,7 @@ class Graph(object):
                 graph.add_edge((i, target))
 
         return graph
-
-
-
-
-    def unknown_edges(self):
-        return [(i, j) for i in range(self.size) for j in range(i+1, self.size) if self.adj_matrix[i][j] == 2]
+        
 
     def split_dataset(self, common_prop=0, graph1_prop=0.5):
         # sample edges and non edges to create two graphs
@@ -251,39 +231,33 @@ class Graph(object):
         for i in range(self.size):
             for j in range(i+1, self.size):
                 prob = np.random.random()
+                value = 0 if i in self.non_adj_list[j] else 1
                 if prob < common_prop:
-                    graph1.adj_matrix[i][j] = self.adj_matrix[i][j]
-                    graph1.adj_matrix[j][i] = self.adj_matrix[j][i]
-                    graph2.adj_matrix[i][j] = self.adj_matrix[i][j]
-                    graph2.adj_matrix[j][i] = self.adj_matrix[j][i]
+                    graph1.write_value((i, j), value)
+                    graph2.write_value((j, i), value)
+
                 elif common_prop < prob < graph1_threshold:
-                    graph1.adj_matrix[i][j] = self.adj_matrix[i][j]
-                    graph1.adj_matrix[j][i] = self.adj_matrix[j][i]
-                    graph2.adj_matrix[i][j] = 2
-                    graph2.adj_matrix[j][i] = 2
+                    graph1.write_value((i, j), value)
+                    graph2.write_value((j, i), 2)
                 else:
-                    graph1.adj_matrix[i][j] = 2
-                    graph1.adj_matrix[j][i] = 2
-                    graph2.adj_matrix[i][j] = self.adj_matrix[i][j]
-                    graph2.adj_matrix[j][i] = self.adj_matrix[j][i]
+                    graph1.write_value((i, j), 2)
+                    graph2.write_value((j, i), value)
                     
         return graph1, graph2
 
     def fix_edges(self, value=0):
         for i in range(self.size):
             for j in range(i+1, self.size):
-                if self.adj_matrix[i][j] == 2:
-                    self.adj_matrix[i][j] = value
-                    self.adj_matrix[j][i] = value
+                if i in self.unknown_list[j]:
+                    self.write_value((i, j), 0)
 
 
-    def global_clustering_coefficient(self):
-        adj_matrix = self.adj_matrix
-        adj_matrix_3 = np.dot(adj_matrix, np.dot(adj_matrix, adj_matrix))
-        adj_matrix_2 = np.dot(adj_matrix, adj_matrix)
-        numerator = 1/6 * np.trace(adj_matrix_3)
-        denominator = 1/2 * np.sum(adj_matrix_2[i, j] for i in range(self.size) for j in range(self.size) if i != j)
-        return numerator / denominator
+    def common_neighbors_matrix(self):
+        common_neighbors_matrix = np.zeros((self.size, self.size), dtype=int)
+        for i in range(self.size):
+            for j in range(i, self.size):
+                common_neighbors_matrix[i][j] = len(self.common_neighbors((i, j)))
+        return common_neighbors_matrix
 
 
     def to_networkx(self):
@@ -300,147 +274,3 @@ class Graph(object):
         with open(filepath, 'w') as f:
             for (n1, n2) in self.edges():
                 f.write(f"{n1+1}\t{n2+1 - self.first_partition_size}\t1\n")
-
-
-                    
-
-
-class BipartiteGraph:
-
-    def __init__(self, part1_nodes, part2_nodes, adj_matrix=None):
-        self.part1_size = part1_nodes
-        self.part2_size = part2_nodes
-        self.total_size = self.part1_size + self.part2_size
-        if adj_matrix is not None:
-            self.adj_matrix = adj_matrix
-        else:
-            self.adj_matrix = np.full((self.part1_size, self.part2_size), 2, dtype=int)
-
-
-    def edges(self):
-        edges = []
-        for i in range(self.part1_size):
-            for j in range(self.part2_size):
-                if self.adj_matrix[i][j] == 1:
-                    edges.append((i, j + self.part1_size))
-        return edges
-
-    def add_edge(self, edge):
-        n1, n2 = edge
-        if n1 < self.part1_size and n2 >= self.part1_size:
-            self.adj_matrix[n1][n2 - self.part1_size] = 1
-        elif n2 < self.part1_size and n1 >= self.part1_size:
-            self.adj_matrix[n2][n1 - self.part1_size] = 1
-        else:
-            raise ValueError("Edges can only exist between partitions in a bipartite graph.")
-
-    def get_edge_label(self, edge):
-        n1, n2 = edge
-        if n1 < self.part1_size and n2 >= self.part1_size:
-            return self.adj_matrix[n1][n2 - self.part1_size]
-        elif n2 < self.part1_size and n1 >= self.part1_size:
-            return self.adj_matrix[n2][n1 - self.part1_size]
-        else:
-            raise ValueError("Invalid edge in bipartite graph.")
-
-    def add_edges_from(self, edges):
-        for edge in edges:
-            self.add_edge(edge)
-
-    def remove_edge(self, edge):
-        n1, n2 = edge
-        if n1 < self.part1_size and n2 >= self.part1_size:
-            self.adj_matrix[n1][n2 - self.part1_size] = 0
-        elif n2 < self.part1_size and n1 >= self.part1_size:
-            self.adj_matrix[n2][n1 - self.part1_size] = 0
-        else:
-            raise ValueError("Edges can only be removed between partitions in a bipartite graph.")
-
-    def neighbors(self, node):
-        if node < self.part1_size:
-            return np.where(self.adj_matrix[node] == 1)[0] + self.part1_size
-        elif node >= self.part1_size:
-            return np.where(self.adj_matrix[:, node - self.part1_size] == 1)[0]
-        else:
-            raise ValueError("Node out of bounds in bipartite graph.")
-
-    def common_neighbors(self, edge):
-        n1, n2 = edge
-        return set(self.neighbors(n1)).intersection(set(self.neighbors(n2)))
-
-    def common_neighbors_index(self, edge=None):
-        if edge:
-            n1, n2 = edge
-            return len(set(self.neighbors(n1)).intersection(set(self.neighbors(n2))))
-        else:
-            common_neighbors = np.zeros((self.total_size, self.total_size))
-            for i in range(self.part1_size):
-                for j in range(self.part2_size):
-                    common_neighbors[i][j] = len(set(self.neighbors(i)).intersection(set(self.neighbors(j + self.part1_size))))
-            return common_neighbors
-
-    # Similar methods can be written for jaccard_index, adamic_adar_index, etc.
-    # Add the other methods based on bipartite graph structure.
-
-    @staticmethod
-    def from_adj_matrix(adj_matrix):
-        part1_nodes = adj_matrix.shape[0]
-        part2_nodes = adj_matrix.shape[1]
-        return BipartiteGraph(part1_nodes, part2_nodes, adj_matrix)
-
-    @staticmethod
-    def from_txt(filepath):
-        edges = pd.read_csv(filepath, sep='\t', header=None)
-        part1_nodes = max(edges[0].tolist())
-        part2_nodes = max(edges[1].tolist())
-        graph = BipartiteGraph(part1_nodes, part2_nodes)
-        for i in range(len(edges)):
-            graph.add_edge((edges[0][i]-1, edges[1][i]-1 + part1_nodes))
-        return graph
-
-    def unknown_edges(self):
-        return [(i, j) for i in range(self.part1_size) for j in range(self.part2_size) if self.adj_matrix[i][j] == 2]
-
-    def to_txt(self, filepath):
-        with open(filepath, 'w') as f:
-            for i in range(self.part1_size):
-                for j in range(self.part2_size):
-                    if self.adj_matrix[i][j] == 1:
-                        f.write(f"{i+1}\t{j+1}\n")
-
-    def split_dataset(self, common_prop=0, graph1_prop=0.5):
-        graph1 = self.copy()
-        graph2 = self.copy()
-
-        graph1_threshold = common_prop + graph1_prop
-
-        for i in range(self.part1_size):
-            for j in range(self.part2_size):
-                prob = np.random.random()
-                if prob < common_prop:
-                    graph1.add_edge((i, j + self.part1_size))
-                    graph2.add_edge((i, j + self.part1_size))
-                elif common_prop < prob < graph1_threshold:
-                    graph1.add_edge((i, j + self.part1_size))
-                    graph2.remove_edge((i, j + self.part1_size))
-                else:
-                    graph1.remove_edge((i, j + self.part1_size))
-                    graph2.add_edge((i, j + self.part1_size))
-
-        return graph1, graph2
-
-    def copy(self):
-        return BipartiteGraph(self.part1_size, self.part2_size, adj_matrix=np.copy(self.adj_matrix))
-
-    def stats(self):
-        num_present = len(np.where(self.adj_matrix == 1)[0])
-        num_absent = len(np.where(self.adj_matrix == 0)[0])
-        num_unknown = len(np.where(self.adj_matrix == 2)[0])
-
-        return num_absent, num_present, num_unknown
-
-    def fix_edges(self):
-        for i in range(self.part1_size):
-            for j in range(self.part2_size):
-                if self.adj_matrix[i][j] == 2:
-                    self.adj_matrix[i][j] = 0
