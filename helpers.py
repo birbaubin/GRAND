@@ -9,8 +9,11 @@ from prettytable import PrettyTable
 def frobenius_distance(prediction, groundtruth):
     return np.linalg.norm(prediction.adjacency_matrix() - groundtruth.adjacency_matrix(), 'fro')
 
-def reconstruction_accuracy(prediction, groundtruth):
-    return np.sum(prediction.adjacency_matrix() == groundtruth.adjacency_matrix()) / groundtruth.adjacency_matrix().size
+def reconstruction_error(prediction, groundtruth):
+    Gsquare = np.dot(groundtruth.adjacency_matrix(), groundtruth.adjacency_matrix())
+    Gsquare_pred = np.dot(prediction.adjacency_matrix(), prediction.adjacency_matrix())
+    return np.sum(np.abs(Gsquare - Gsquare_pred)) / (Gsquare.shape[0] * Gsquare.shape[1])
+
 
 def rae(prediction, groundtruth):
     return (np.linalg.norm(prediction.adjacency_matrix() - groundtruth.adjacency_matrix(), "fro" ) ** 2 )/ (np.linalg.norm(groundtruth.adjacency_matrix(), "fro") ** 2)
@@ -61,8 +64,9 @@ def display_reconstruction_metrics(prediction, groundtruth):
 def log_graph_stats(graph1_prob, common_prob, expe, attack_type, proba_params, optim, iter_number, time, file_name, prediction, groundtruth):
     stats = prediction.stats()
     TP, FP, TN, FN = ROC_stats(prediction, groundtruth)
+    rec_error = reconstruction_error(prediction, groundtruth)
     with open(file_name, "a+") as f:
-        f.write(f"{expe},{attack_type},{optim},{proba_params[0]},{proba_params[1]},{proba_params[2]},{graph1_prob},{common_prob},{iter_number},{stats[0]},{stats[1]},{stats[2]},{TP},{FP},{TN},{FN},{time}\n")
+        f.write(f"{expe},{attack_type},{optim},{proba_params[0]},{proba_params[1]},{proba_params[2]},{graph1_prob},{common_prob},{iter_number},{stats[0]},{stats[1]},{stats[2]},{TP},{FP},{TN},{FN},{rec_error},{time}\n")
         f.close()
     return stats[0], stats[1], stats[2]
 

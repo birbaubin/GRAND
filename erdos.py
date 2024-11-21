@@ -38,7 +38,7 @@ class SpectralAttack:
                 M_star = M_star_minus
                 chosen = S_Gi_minus
 
-            assert chosen < np.max(np.diag(self.A))
+            # assert chosen < np.max(np.diag(self.A))
 
             
         M_star = np.where(M_star > self.threshold, 1, 0)

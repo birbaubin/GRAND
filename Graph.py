@@ -92,6 +92,9 @@ class Graph(object):
     def edges(self):
         return [[i, j] for i in range(self.size) for j in range(self.size) if i in self.adj_list[j]]
 
+    def edges_no_repeat(self):
+        return [[i, j] for i in range(self.size) for j in range(i+1, self.size) if i in self.adj_list[j]]
+
     def non_edges(self):
         return [[i, j] for i in range(self.size) for j in range(self.size) if i in self.non_adj_list[j]]
 

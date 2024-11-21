@@ -253,6 +253,7 @@ class RevisitedSpectral:
                     self.Gstar.write_value((j, k), 2)
                     modifs += 1
 
+        print(f"Sanity check with high loss modifs: {modifs}")
 
     def sanity_check_with_early_stop(self, threshold=0.05):
 
@@ -299,9 +300,8 @@ class RevisitedSpectral:
 
             if sum_row != sum_degrees_neighbors:
                 for n in self.Gstar.nodes:
-                    if self.last_G.adj_matrix[node, n] == 2:
-                        self.Gstar.adj_matrix[node, n] = 2
-                        self.Gstar.adj_matrix[n, node] = 2
+                    if self.last_G.does_not_know_edge((node, n)):
+                        self.Gstar.write_value((node, n), 2)
 
                         modifs += 1
 
@@ -329,21 +329,19 @@ class RevisitedSpectral:
 
     def sanity_check_ultimate2(self):
         modifs = 0
-
-        A_prime = np.dot(self.Gstar.adj_matrix, self.Gstar.adj_matrix.T)
+        adj_matrix = self.Gstar.adjacency_matrix()
+        A_prime = np.dot(adj_matrix, adj_matrix.T)
 
         for i in range(self.A.shape[0]):
             sum_row = np.sum(self.A[i])
             sum_row_prime = np.sum(A_prime[i])
             if sum_row != sum_row_prime:
                 for j in range(self.A.shape[0]):
-                    if self.last_G.adj_matrix[i, j] == 2:
-                        self.Gstar.adj_matrix[i, j] = 2
-                        self.Gstar.adj_matrix[j, i] = 2
+                    if self.last_G.does_not_know_edge((i, j)):
+                        self.Gstar.write_value((i, j), 2)
                         modifs += 1
 
-        modifs = len(np.argwhere(self.Gstar.adj_matrix == 2))
-        print(f"modifs: {modifs}")
+        print(f"Sanity check ultimate 2 modifs: {modifs}")
 
 
 
