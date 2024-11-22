@@ -200,6 +200,8 @@ class RevisitedSpectral:
 
         for i in range(self.A.shape[0]):
             for j in range(i+1, self.A.shape[1]):
+
+
                 if self.A[i, j] < A_prime[i, j]:
                     if A_prime[i, i] == self.A[i, i]:
                         for k in range(self.A.shape[0]):
@@ -244,6 +246,15 @@ class RevisitedSpectral:
 
         differences = np.argwhere(self.A != A_prime)
 
+        # ensure symmetry
+        for i in range(self.A.shape[0]):
+            for j in range(i, self.A.shape[1]):
+                if self.Gstar.get_edge_label((i, j)) != self.Gstar.get_edge_label((j, i)):
+                    self.Gstar.write_value((i, j), 1)
+                    self.Gstar.write_value((j, i), 1)
+                    modifs += 1
+
+        # detect and clean false inferences
         for i, j in differences:
             for k in range(self.A.shape[0]):
                 if self.last_G.does_not_know_edge((i, k)):
