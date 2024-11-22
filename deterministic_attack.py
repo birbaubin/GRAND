@@ -427,8 +427,16 @@ class DeterministicAttack:
                 print(f"Node : {node}, degree in A : {A[node, node]}, degree in A_prime : {A_prime[node, node]}")
 
         for hub, nodes in components.items():
-            for i in range(len(nodes) // 2):
-                Gstar_fixed.add_edge((nodes[2*i], nodes[2*i + 1]))
+            for node in nodes:
+                # find another node that has the same degree in A and A_prime
+                for other in nodes:
+                    if other != node:
+                        if (A[node, node] == A[other, other] and \
+                            A_prime[node, node] == A_prime[other, other] and \
+                            Gstar_fixed.degree(other) != A[other, other] and \
+                            Gstar_fixed.degree(node) != A[node, node]) :
+
+                            Gstar_fixed.add_edge((node, other))
 
         self.Gstar = Gstar_fixed
 
