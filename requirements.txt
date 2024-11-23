@@ -1,7 +1,7 @@
 numpy
 matplotlib
+seaborn
 tqdm
 prettytable
 pandas
-torch
-torch_geometric
+joblib
