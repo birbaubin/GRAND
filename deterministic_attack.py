@@ -40,7 +40,7 @@ class DeterministicAttack:
             else:
                 print("#### Deterministic attacks ####")
 
-                self.log_file = open(f"logs/deterministics/{self.dataset_name}.csv", "a")
+                self.log_file = open(f"logs/deterministics/{self.dataset_name}.csv", "w+")
 
 
 
