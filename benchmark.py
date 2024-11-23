@@ -91,8 +91,10 @@ if __name__ == "__main__":
                         np.savetxt(f"logs/deterministic_results/{dataset_name}_deter_adj_matrix.csv", Gstar.adjacency_matrix(), delimiter=",", fmt="%d")
                 
                 elif expe_type == "H":
+                    start = time.time()
                     attack = SpectralAttack(G1, A, 0.5)
                     attack.run()
+                    end = time.time()
 
                     Gstar = attack.get_Gstar()
                 
@@ -110,6 +112,7 @@ if __name__ == "__main__":
                 elif expe_type.startswith("DDH"):
                     proba_params = expe_type.split("_")[1:]
                     complete_graph = proba_params[3]
+                    start = time.time()
                     deterministic_attack = DeterministicAttack(G1, A, graph1_prop=graph1_prop, dataset_name=dataset_name, log=log_deterministic, expe_number=expe)
                     deterministic_attack.run()
                     Gstar = deterministic_attack.get_Gstar()
@@ -130,13 +133,16 @@ if __name__ == "__main__":
                             deterministic_attack.complete_graph() 
                             
                         Gstar = deterministic_attack.get_Gstar()
+                    
+                    end = time.time()
+
                 else:
                     print("Unknown experiment type")
                     continue    
 
 
                 log_graph_stats(graph1_prop, common_prop, expe, expe_type, 
-                    proba_params, complete_graph, 0, 0, f"logs/benchmark/{dataset_name}.csv", Gstar, G)
+                    proba_params, complete_graph, 0, end-start, f"logs/benchmark/{dataset_name}.csv", Gstar, G)
 
             print(f"Experiment {expe} done for {expe_type} with graph1_prop={graph1_prop} and common_prop={common_prop}")
 
