@@ -44,7 +44,7 @@ if __name__ == "__main__":
     common_props = [0]
 
     proba_params = (0.0, 0.0, 0.0)
-    optimize_sanity_check = 0
+    complete_graph = 0
 
 
     # Load dataset
@@ -130,14 +130,13 @@ if __name__ == "__main__":
                             deterministic_attack.complete_graph() 
                             
                         Gstar = deterministic_attack.get_Gstar()
-                        Gstar.fix_edges()
                 else:
                     print("Unknown experiment type")
                     continue    
 
 
                 log_graph_stats(graph1_prop, common_prop, expe, expe_type, 
-                    proba_params, optimize_sanity_check, 0, 0, f"logs/benchmark/{dataset_name}.csv", Gstar, G)
+                    proba_params, complete_graph, 0, 0, f"logs/benchmark/{dataset_name}.csv", Gstar, G)
 
             print(f"Experiment {expe} done for {expe_type} with graph1_prop={graph1_prop} and common_prop={common_prop}")
 
