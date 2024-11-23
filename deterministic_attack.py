@@ -40,7 +40,7 @@ class DeterministicAttack:
             else:
                 print("#### Deterministic attacks ####")
 
-                self.log_file = open(f"logs/deterministics/{self.dataset_name}.csv", "w+")
+                self.log_file = open(f"logs/deterministics/{self.dataset_name}.csv", "a")
 
 
 
@@ -208,108 +208,109 @@ class DeterministicAttack:
         self.modifications += modifs
 
     
-    # def rectangle_attack(self, degrees=[1, 2, 3, 4, 5]):
-    #     modifs = 0
-    #     # reconstructed_graph = self.Gstar.copy()
-    #     A = self.A
-
-    #     common_neighbors_matrix = self.Gstar.common_neighbors_matrix()
-    #     neighbors = [self.Gstar.neighbors(node) for node in self.Gstar.nodes]
-    #     candidates = [ node for node in self.Gstar.nodes if common_neighbors_matrix[node, node] == A[node, node]]
-
-    #     for node in tqdm(candidates, desc="Rectangle attack"):
-    #         node_neighbors = neighbors[node]
-    #         for graph_node in self.Gstar.nodes:
-    #             if A[node, graph_node] == A[node, node]:
-    #                 for neighbor in node_neighbors:
-    #                     if self.Gstar.does_not_know_edge((neighbor, graph_node)):
-    #                         self.Gstar.add_edge((neighbor, graph_node))
-    #                         modifs += 2
-    #             else:
-    #                 graph_node_neighbors = neighbors[graph_node]
-    #                 number_missing_edges = self.A[graph_node, graph_node] - len(graph_node_neighbors)
-    #                 number_missing_common_neighbors = self.A[node, graph_node] - len(node_neighbors & graph_node_neighbors)
-
-    #                 if number_missing_edges == number_missing_common_neighbors:
-    #                     adds = list(self.Gstar.nodes - node_neighbors)
-    #                     for i in adds:
-    #                         if self.Gstar.does_not_know_edge((i, graph_node)):
-    #                             self.Gstar.remove_edge((i, graph_node))
-    #                             modifs += 2
-
-
-    #     print(f"Rectangle attack: {modifs} modifications")
-
-    #     if self.log:
-    #         self.log_file.write(f"rectangle,{self.expe_number},{self.graph1_prop},{modifs}\n")
-
-    #     # self.Gstar = reconstructed_graph
-    #     self.modifications += modifs
-
-
-
+        
     def rectangle_attack(self, degrees=[1, 2, 3, 4, 5]):
         modifs = 0
+        # reconstructed_graph = self.Gstar.copy()
         A = self.A
 
-        neighbors = {node: set(self.Gstar.neighbors(node)) for node in self.Gstar.nodes}
         common_neighbors_matrix = self.Gstar.common_neighbors_matrix()
+        neighbors = [self.Gstar.neighbors(node) for node in self.Gstar.nodes]
         candidates = [node for node in self.Gstar.nodes if self.Gstar.unknown_list[node] == set()]
         others = self.Gstar.nodes - set(candidates)
 
-
-        def process_candidate(node):
-            local_modifs = 0
-            local_edges_to_add = []
-            local_edges_to_remove = []
+        for node in tqdm(candidates, desc="Rectangle attack"):
             node_neighbors = neighbors[node]
+            for graph_node in others:
+                if A[node, graph_node] == A[node, node]:
+                    for neighbor in node_neighbors:
+                        if self.Gstar.does_not_know_edge((neighbor, graph_node)):
+                            self.Gstar.add_edge((neighbor, graph_node))
+                            modifs += 2
+                else:
+                    graph_node_neighbors = neighbors[graph_node]
+                    number_missing_edges = self.A[graph_node, graph_node] - len(graph_node_neighbors)
+                    number_missing_common_neighbors = self.A[node, graph_node] - len(node_neighbors & graph_node_neighbors)
 
-            graph_nodes = [graph_node for graph_node in others if common_neighbors_matrix[node, graph_node] == A[node, node]]
-            for graph_node in graph_nodes:
-                for neighbor in node_neighbors:
-                    if self.Gstar.does_not_know_edge((neighbor, graph_node)):
-                        local_edges_to_add.append((neighbor, graph_node))
-                        local_modifs += 2
+                    if number_missing_edges == number_missing_common_neighbors:
+                        adds = list(self.Gstar.nodes - node_neighbors)
+                        for i in adds:
+                            if self.Gstar.does_not_know_edge((i, graph_node)):
+                                self.Gstar.remove_edge((i, graph_node))
+                                modifs += 2
 
-            graph_nodes = [graph_node for graph_node in others if A[node, graph_node] != A[node, node]]
-            for graph_node in graph_nodes:
-                graph_node_neighbors = neighbors[graph_node]
-                number_missing_edges = A[graph_node, graph_node] - len(graph_node_neighbors)
-                number_missing_common_neighbors = A[node, graph_node] - len(node_neighbors & graph_node_neighbors)
-
-                if number_missing_edges == number_missing_common_neighbors:
-                    adds = self.Gstar.nodes - node_neighbors
-                    for i in adds:
-                        if self.Gstar.does_not_know_edge((i, graph_node)):
-                            local_edges_to_remove.append((i, graph_node))
-                            local_modifs += 2
-
-            return local_modifs, local_edges_to_add, local_edges_to_remove
-
-        results = Parallel(n_jobs=-1)(
-            delayed(process_candidate)(node) for node in tqdm(candidates, desc="Rectangle attack")
-        )
-
-        # Aggregate results
-        edges_to_add = []
-        edges_to_remove = []
-        for local_modifs, local_adds, local_removes in results:
-            modifs += local_modifs
-            edges_to_add.extend(local_adds)
-            edges_to_remove.extend(local_removes)
-
-        # Apply modifications
-        for edge in edges_to_add:
-            self.Gstar.add_edge(edge)
-        for edge in edges_to_remove:
-            self.Gstar.remove_edge(edge)
 
         print(f"Rectangle attack: {modifs} modifications")
 
         if self.log:
             self.log_file.write(f"rectangle,{self.expe_number},{self.graph1_prop},{modifs}\n")
 
+        # self.Gstar = reconstructed_graph
         self.modifications += modifs
+
+
+    # def rectangle_attack(self, degrees=[1, 2, 3, 4, 5]):
+    #     modifs = 0
+    #     A = self.A
+
+    #     neighbors = {node: set(self.Gstar.neighbors(node)) for node in self.Gstar.nodes}
+    #     common_neighbors_matrix = self.Gstar.common_neighbors_matrix()
+    #     candidates = [node for node in self.Gstar.nodes if self.Gstar.unknown_list[node] == set()]
+    #     others = self.Gstar.nodes - set(candidates)
+
+
+    #     def process_candidate(node):
+    #         local_modifs = 0
+    #         local_edges_to_add = []
+    #         local_edges_to_remove = []
+    #         node_neighbors = neighbors[node]
+
+    #         graph_nodes = [graph_node for graph_node in others if common_neighbors_matrix[node, graph_node] == A[node, node]]
+    #         for graph_node in graph_nodes:
+    #             for neighbor in node_neighbors:
+    #                 if self.Gstar.does_not_know_edge((neighbor, graph_node)):
+    #                     local_edges_to_add.append((neighbor, graph_node))
+    #                     local_modifs += 2
+
+    #         graph_nodes = [graph_node for graph_node in others if A[node, graph_node] != A[node, node]]
+    #         for graph_node in graph_nodes:
+    #             graph_node_neighbors = neighbors[graph_node]
+    #             number_missing_edges = A[graph_node, graph_node] - len(graph_node_neighbors)
+    #             number_missing_common_neighbors = A[node, graph_node] - len(node_neighbors & graph_node_neighbors)
+
+    #             if number_missing_edges == number_missing_common_neighbors:
+    #                 adds = self.Gstar.nodes - node_neighbors
+    #                 for i in adds:
+    #                     if self.Gstar.does_not_know_edge((i, graph_node)):
+    #                         local_edges_to_remove.append((i, graph_node))
+    #                         local_modifs += 2
+
+    #         return local_modifs, local_edges_to_add, local_edges_to_remove
+
+    #     results = Parallel(n_jobs=-1)(
+    #         delayed(process_candidate)(node) for node in tqdm(candidates, desc="Rectangle attack")
+    #     )
+
+    #     # Aggregate results
+    #     edges_to_add = []
+    #     edges_to_remove = []
+    #     for local_modifs, local_adds, local_removes in results:
+    #         modifs += local_modifs
+    #         edges_to_add.extend(local_adds)
+    #         edges_to_remove.extend(local_removes)
+
+    #     # Apply modifications
+    #     for edge in edges_to_add:
+    #         self.Gstar.add_edge(edge)
+    #     for edge in edges_to_remove:
+    #         self.Gstar.remove_edge(edge)
+
+    #     print(f"Rectangle attack: {modifs} modifications")
+
+    #     if self.log:
+    #         self.log_file.write(f"rectangle,{self.expe_number},{self.graph1_prop},{modifs}\n")
+
+    #     self.modifications += modifs
 
 
 
