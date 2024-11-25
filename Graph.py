@@ -93,13 +93,16 @@ class Graph(object):
         return [[i, j] for i in range(self.size) for j in range(self.size) if i in self.adj_list[j]]
 
     def edges_no_repeat(self):
-        return [[i, j] for i in range(self.size) for j in range(i+1, self.size) if i in self.adj_list[j]]
+        return [[i, j] for i in range(self.size) for j in range(i, self.size) if i in self.adj_list[j]]
 
     def non_edges(self):
         return [[i, j] for i in range(self.size) for j in range(self.size) if i in self.non_adj_list[j]]
 
     def unknown_edges(self):
-        return [[i, j] for i in range(self.size) for j in range(self.size) if i in self.unknown_list[j]]
+        return [(i, j) for i in range(self.size) for j in range(self.size) if i in self.unknown_list[j]]
+
+    def unknown_edges_no_repeat(self):
+        return [(i, j) for i in range(self.size) for j in range(i, self.size) if i in self.unknown_list[j]]
 
     def degree(self, node):
         return len(self.neighbors(node))
@@ -131,13 +134,17 @@ class Graph(object):
         num_unknown = 0
 
         for i in range(self.size):
-            for j in range(i+1, self.size):
+            for j in range(i, self.size):
+
+                increment = 1 if i == j else 2 # self loops count for 1 in the adjacency matrix, others for 2
+
                 if i in self.adj_list[j]:
-                    num_present += 2
+                    num_present += increment
                 elif i in self.non_adj_list[j]:
-                    num_absent += 2
+                    num_absent += increment
                 else:
-                    num_unknown += 2
+                    num_unknown += increment
+                
 
         return num_absent, num_present, num_unknown
 
@@ -248,6 +255,39 @@ class Graph(object):
                     
         return graph1, graph2
 
+
+
+    def gradual_sample(self, start=0, stop=1, increment=0.1):
+        base_sample = Graph(self.size, with_fixed_edges=False)
+
+        # Initialize the graph with `start` proportion of edges
+
+        samples = []
+        print("Generating samples...")
+
+        # Compute total number of edges in a complete graph
+        total_edges = self.size * (self.size - 1) // 2
+        current_edges = (len(base_sample.edges() + base_sample.non_edges()) - self.size) // 2  # Edges already in the graph
+
+        # Incrementally add edges to reach the target proportions
+        for prop in np.linspace(start, stop, int((stop - start) / increment) + 1, endpoint=True):
+            target_edges = int(prop * total_edges)
+            edges_to_add = target_edges - current_edges
+
+            sample = base_sample.copy()
+            unknown_edges = list(sample.unknown_edges_no_repeat())
+            np.random.shuffle(unknown_edges)
+
+            for edge in unknown_edges[:edges_to_add]:
+                sample.write_value(edge, self.get_edge_label(edge))
+
+            samples.append((prop, sample.copy()))
+            base_sample = sample
+            current_edges += edges_to_add
+
+        return samples
+            
+
     def fix_edges(self, value=0):
         for i in range(self.size):
             for j in range(i+1, self.size):
@@ -277,3 +317,8 @@ class Graph(object):
         with open(filepath, 'w') as f:
             for (n1, n2) in self.edges():
                 f.write(f"{n1+1}\t{n2+1 - self.first_partition_size}\t1\n")
+
+
+    def __str__(self):
+        return f"Graph (#nodes = {self.size}, #0s = {self.stats()[0]}, #1s = {self.stats()[1]}, #?s = {self.stats()[2]})"
+        

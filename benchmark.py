@@ -37,8 +37,7 @@ if __name__ == "__main__":
     args = argparser.parse_args()
     number_of_experiments = args.n_experiments
     dataset_name = args.dataset
-    props = args.graph1_props
-    graph1_props = np.linspace(props[0], props[1], num=int((props[1] - props[0]) / props[2]) + 1, endpoint=True)
+    sample_start, sample_stop, sample_increment = args.graph1_props
     expe_types = args.types
     log_deterministic = args.log_deterministic
     common_props = [0]
@@ -65,20 +64,22 @@ if __name__ == "__main__":
         f.close()
 
     for expe in range(number_of_experiments):
-        for graph1_prop, common_prop in product(graph1_props, common_props):
-            if dataset_name.startswith("barabasi"):
-                print("Generating barabasi graph... ")
-                G = generate_barabasi_graph_from_str(dataset_name)
-                adj = G.adjacency_matrix()
-                A = np.dot(adj, adj)
+        if dataset_name.startswith("barabasi"):
+            print("Generating barabasi graph... ")
+            G = generate_barabasi_graph_from_str(dataset_name)
+            adj = G.adjacency_matrix()
+            A = np.dot(adj, adj)
 
-            elif dataset_name.startswith("random"):
-                print("Generating random graph... ")
-                G = generate_random_graph_from_str(dataset_name)
-                adj = G.adjacency_matrix()
-                A = np.dot(adj, adj)
+        elif dataset_name.startswith("random"):
+            print("Generating random graph... ")
+            G = generate_random_graph_from_str(dataset_name)
+            adj = G.adjacency_matrix()
+            A = np.dot(adj, adj)
 
-            G1, G2 = G.split_dataset(common_prop=common_prop, graph1_prop=graph1_prop)
+        for Ga_prop, Ga in G.gradual_sample(sample_start, sample_stop, sample_increment):
+            G1 = Ga
+            graph1_prop = Ga_prop
+            common_prop = 0
 
             for expe_type in expe_types:
                 if expe_type == "D":
@@ -144,8 +145,10 @@ if __name__ == "__main__":
                 log_graph_stats(graph1_prop, common_prop, expe, expe_type, 
                     proba_params, complete_graph, 0, end-start, f"logs/benchmark/{dataset_name}.csv", Gstar, G)
 
-            print(f"Experiment {expe} done for {expe_type} with graph1_prop={graph1_prop} and common_prop={common_prop}")
+            print(f"----> Experiment {expe} done for {expe_type} with graph1_prop={graph1_prop}")
 
-    print(f"Experiments done for {dataset_name}")
+    print(f"----> Finished run {expe} for {dataset_name}")
+
+print(f"----> Experiments done for {dataset_name}")
 
 
