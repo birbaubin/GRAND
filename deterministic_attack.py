@@ -318,50 +318,72 @@ class DeterministicAttack:
         """
         # Identifying the components of the graph that are not reconstructed
 
+        print("Instanciating isomorphism")
+
+        def equivalent(n1, n2, array):
+            for i in range(array.shape[1]):
+                if array[n1, i] != array[n2, i] and i != n1 and i != n2:
+                    return False
+
+            if array[n1, n1] != array[n2, n2]:
+                return False
+
+            return True
+
+
+        def is_in_equivalence_classes(equivalence_class, equivalence_classes):
+            for ec in equivalence_classes:
+                if set(equivalence_class) == set(ec):
+                    return True
+
+            return False
+
+
         Gstar_fixed = self.Gstar.copy()
-        Gstar_fixed.fix_edges()
-        A = self.A
-        adj_matrix = Gstar_fixed.adjacency_matrix()
+        Gsquare = self.A
 
-        A_prime = np.dot(adj_matrix, adj_matrix)
-        slots_of_error = np.argwhere(A!= A_prime)
-        nodes_of_error = set()
-        for i, j in slots_of_error:
-            nodes_of_error.add(i)
-            nodes_of_error.add(j)
+        choices = {}
+        unknown_nodes = []
+        unknowned_edges = Gstar_fixed.unknown_edges()
+        for edge in unknowned_edges:
+            if edge[0] not in choices:
+                choices[edge[0]] = set()
+            choices[edge[0]].add(edge[1])
 
-        nodes_of_error = list(nodes_of_error)
 
-        components = {}
-        hubs = []
-        for node in nodes_of_error:
-            if A[node, node] == A_prime[node, node]:
-                hubs.append(node)
+        equivalence_classes_per_node = {}
 
-        for hub in hubs:
-            components[hub] = []
-            for node in nodes_of_error:
-                if A[hub, node] != A_prime[hub, node]:
-                    components[hub].append(node)
+        for node, candidates in choices.items():
+            equivalence_classes = []
+            for candidate in candidates:
+                equivalent_nodes = []
+                equivalent_nodes.append(candidate)
+                for other_candidate in candidates - {candidate}:
+                    if equivalent(candidate, other_candidate, Gsquare):
+                        equivalent_nodes.append(other_candidate)
 
-        for hub, nodes in components.items():
-            print(f" --- Hub ----: {hub}")
-            for node in nodes:
-                print(f"Node : {node}, degree in A : {A[node, node]}, degree in A_prime : {A_prime[node, node]}")
+                if not is_in_equivalence_classes(equivalent_nodes, equivalence_classes):
+                    equivalence_classes.append(equivalent_nodes)
 
-        for hub, nodes in components.items():
-            for node in nodes:
-                # find another node that has the same degree in A and A_prime
-                for other in nodes:
-                    if other != node:
-                        if (A[node, node] == A[other, other] and \
-                            A_prime[node, node] == A_prime[other, other] and \
-                            Gstar_fixed.degree(other) != A[other, other] and \
-                            Gstar_fixed.degree(node) != A[node, node]) :
+            equivalence_classes_per_node[node] = equivalence_classes
 
-                            Gstar_fixed.add_edge((node, other))
+        selected_nodes =equivalence_classes_per_node.keys()
 
-        self.Gstar = Gstar_fixed
+        for node, equivalence_classes in equivalence_classes_per_node.items():
+            if Gstar_fixed.degree(node) == Gsquare[node, node]:
+                continue
+            for candidates in equivalence_classes:
+                for node_candidate in candidates:
+                    if Gstar_fixed.degree(node_candidate) == Gsquare[node_candidate, node_candidate] or Gstar_fixed.degree(node) == Gsquare[node, node]:
+                        continue
+                    Gstar_fixed.add_edge((node, node_candidate))
+                    print(f"Adding edge between {node} and {node_candidate}")
+                    break
+
+
+        self.Gstar = Gstar_fixed.copy()
+
+
 
     def get_Gstar(self):
         return self.Gstar
