@@ -131,9 +131,11 @@ if __name__ == "__main__":
                         deterministic_attack.run(run_degree=False)
 
                         if int(complete_graph) == 1:
-                            deterministic_attack.complete_graph() 
-                            
-                        Gstar = deterministic_attack.get_Gstar()
+                            # deterministic_attack.complete_graph() 
+                            Gstar = deterministic_attack.get_Gstar()
+                            Gstar.fix_edges()
+                        else:
+                            Gstar = deterministic_attack.get_Gstar()
                     
                     end = time.time()
 

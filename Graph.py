@@ -184,9 +184,12 @@ class Graph(object):
 
 
     @staticmethod
-    def from_txt(filepath):
+    def from_txt(filepath, num_nodes=None):
         edges = pd.read_csv(filepath, sep='\t', header=None)
-        nodes = list(range(0, max(edges[0].tolist() + edges[1].tolist() ) ))
+        if num_nodes is None:
+            nodes = list(range(0, max(edges[0].tolist() + edges[1].tolist() ) ))
+        else:
+            nodes = list(range(0, num_nodes))
         graph = Graph(len(nodes), with_fixed_edges=True)
         for i in range(len(edges)):
             graph.add_edge((edges[0][i]-1, edges[1][i]-1))
@@ -286,6 +289,43 @@ class Graph(object):
             current_edges += edges_to_add
 
         return samples
+
+
+    def gradual_sample_edges(self, start=0, stop=1, increment=0.1):
+        base_sample = Graph(self.size, with_fixed_edges=False)
+
+        # Initialize the graph with `start` proportion of edges
+
+        samples = []
+        print("Generating samples...")
+
+        # Compute total number of edges in a complete graph
+        total_edges = len(self.edges()) // 2
+        current_edges = len(base_sample.edges()) // 2
+
+        # Incrementally add edges to reach the target proportions
+        for prop in np.linspace(start, stop, int((stop - start) / increment) + 1, endpoint=True):
+            target_edges = int(prop * total_edges)
+            edges_to_add = target_edges - current_edges
+
+            sample = base_sample.copy()
+            unknown_edges = list(sample.unknown_edges_no_repeat())
+            np.random.shuffle(unknown_edges)
+
+            count = 0
+
+            while count < edges_to_add:
+                edge = unknown_edges.pop(0)
+                if self.get_edge_label(edge) == 1:
+                    sample.write_value(edge, 1)
+                    count += 1
+
+    
+            samples.append((prop, sample.copy()))
+            base_sample = sample
+            current_edges += edges_to_add
+
+        return samples
             
 
     def fix_edges(self, value=0):
@@ -300,6 +340,7 @@ class Graph(object):
         for i in range(self.size):
             for j in range(i, self.size):
                 common_neighbors_matrix[i][j] = len(self.common_neighbors((i, j)))
+                common_neighbors_matrix[j][i] = common_neighbors_matrix[i][j]
         return common_neighbors_matrix
 
 

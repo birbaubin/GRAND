@@ -120,7 +120,7 @@ class DeterministicAttack:
                         self.Gstar.add_edge((i, k))
                         modifs += 4 if i != j else 2
 
-        print(f"Completion attack: {modifs} modifications")
+        print(f"Neighbor Completion attack: {modifs} modifications")
         if self.log:
             self.log_file.write(f"neighbor_completion,{self.expe_number},{self.graph1_prop},{modifs}\n")
 
@@ -153,6 +153,7 @@ class DeterministicAttack:
         A = self.A
         degree_sequence = np.diag(A)
         degrees = np.unique(degree_sequence)
+        count = 0
 
 
         for i in tqdm(range(A.shape[0]), desc="Degree attack"):
@@ -163,6 +164,7 @@ class DeterministicAttack:
             non_possibilities = np.where((degree_sequence > degree - A[i, i] + 1))[0]
 
             if A[i, i] <= 2:   # optmise for small computation
+                count += 1
                 for comb in combinations(possibilities, A[i, i]):
                     sum_of_degrees = 0
 
@@ -181,7 +183,7 @@ class DeterministicAttack:
                         if self.Gstar.does_not_know_edge((i, j)):
                             self.Gstar.add_edge((i, j))
                             modifs += 2
-
+            
             for j in non_possibilities:
                 if self.Gstar.does_not_know_edge((i, j)):
                     self.Gstar.remove_edge((i, j))
@@ -210,8 +212,9 @@ class DeterministicAttack:
             g2_v = np.setdiff1d(g2_v, v)
 
             candidates = np.intersect1d(g2_u, g2_v)
+            candidates = np.setdiff1d(candidates, self.Gstar.common_neighbors((u, v)))
 
-            if len(candidates) == A[u, v]:
+            if len(candidates) == A[u, v] - len(self.Gstar.common_neighbors((u, v))):
                 for w in candidates:
                     if self.Gstar.does_not_know_edge((u, w)):
                         self.Gstar.add_edge((u, w))
@@ -252,7 +255,7 @@ class DeterministicAttack:
                     number_missing_edges = self.A[graph_node, graph_node] - len(graph_node_neighbors)
                     number_missing_common_neighbors = self.A[node, graph_node] - len(node_neighbors & graph_node_neighbors)
 
-                    if number_missing_edges == number_missing_common_neighbors:
+                    if number_missing_edges <= number_missing_common_neighbors:
                         adds = list(self.Gstar.nodes - node_neighbors)
                         for i in adds:
                             if self.Gstar.does_not_know_edge((i, graph_node)):
@@ -364,6 +367,8 @@ class DeterministicAttack:
 
                 if not is_in_equivalence_classes(equivalent_nodes, equivalence_classes):
                     equivalence_classes.append(equivalent_nodes)
+                
+                np.random.shuffle(equivalence_classes)
 
             equivalence_classes_per_node[node] = equivalence_classes
 

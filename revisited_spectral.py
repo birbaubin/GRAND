@@ -49,9 +49,6 @@ class RevisitedSpectral:
             distance_plus_M_G += np.linalg.norm(M_star_plus[Gstar_non_edges[:, 0], Gstar_non_edges[:, 1]])
             distance_minus_M_G += np.linalg.norm(M_star_minus[Gstar_non_edges[:, 0], Gstar_non_edges[:, 1]])
 
-            # distance_plus_M_binary = np.linalg.norm(M_star_plus - binary_M_star_plus, ord='fro')
-            # distance_minus_M_binary = np.linalg.norm(M_star_minus - binary_M_star_minus, ord='fro')
-
             distance_plus_M_binary = np.linalg.norm(M_star_plus[Gstar_unknowns[:, 0], Gstar_unknowns[:, 1]] - binary_M_star_plus[Gstar_unknowns[:, 0], Gstar_unknowns[:, 1]])
             distance_minus_M_binary = np.linalg.norm(M_star_minus[Gstar_unknowns[:, 0], Gstar_unknowns[:, 1]] - binary_M_star_minus[Gstar_unknowns[:, 0], Gstar_unknowns[:, 1]])
 
@@ -70,14 +67,6 @@ class RevisitedSpectral:
                 M_star = M_star_minus
                 distances.append(distance_minus)
                 distances_not_chosen.append(distance_plus)
-
-
-        # print(" ---- > Distances chosen during the attack: ", distances)
-        # print(" ---- > Distances not chosen during the attack: ", distances_not_chosen)
-        # print("----> Difference", np.array(distances) - np.array(distances_not_chosen))
-
-        # print the difference between the distances two by two
-        delt = []
 
         M_star = np.where(M_star >= threshold, 1, 0)
 
